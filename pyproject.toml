@@ -7,7 +7,7 @@ authors = [
     { name = "Nyaaw", email = "cactus318@hotmail.fr" }
 ]
 requires-python = ">=3.13"
-dependencies = []
+dependencies = ["multilspy>=0.0.15"]
 
 [project.scripts]
 smolrag = "smolrag:main"
