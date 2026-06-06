@@ -1,5 +1,8 @@
 import argparse
+import os
 import sys
+
+from smolrag.actions import list_actions
 
 
 def main() -> None:
@@ -7,17 +10,38 @@ def main() -> None:
         prog="smolrag",
         description="Local codebase analysis via LSPs and sparse retrieval.",
     )
-    sub = parser.add_subparsers(dest="command", help="Available commands")
-
-    # sub.add_parser("index", help="Index a codebase for retrieval")
-    # sub.add_parser("query", help="Search the index and build a context block")
-    # sub.add_parser("serve", help="Start MCP server for agentic LLMs")
-
+    parser.add_argument(
+        "--project",
+        default=os.getcwd(),
+        help="Absolute path to the project root (default: current directory)",
+    )
+    parser.add_argument(
+        "action",
+        nargs="?",
+        help="Action to run (omit to choose interactively)",
+    )
     args = parser.parse_args()
-    if args.command is None:
-        parser.print_help()
-    else:
-        print(f"Command '{args.command}' not yet implemented.")
+
+    actions = list_actions()
+    if not actions:
+        print("No actions available.")
+        sys.exit(1)
+
+    action_name = args.action
+    if action_name is None:
+        print("Available actions:")
+        for name in sorted(actions):
+            print(f"  {name}")
+        action_name = input("\nAction: ").strip()
+
+    action_cls = actions.get(action_name)
+    if action_cls is None:
+        print(f"Unknown action: '{action_name}'")
+        print(f"Available: {', '.join(sorted(actions))}")
+        sys.exit(1)
+
+    action = action_cls(args.project)
+    action.run()
 
 
 if __name__ == "__main__":
