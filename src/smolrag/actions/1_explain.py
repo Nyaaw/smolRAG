@@ -6,11 +6,14 @@ from smolrag.context_builder import ContextBuilder
 class ExplainAction(Action):
     """Find a symbol via LSP and build a context block explaining it."""
 
-    name = "1-explain"
+    name = "explain"
 
     def run(self) -> None:
         client = JavaLSPClient(self.project_root)
         with client.start():
+            # FIXME: wait for the server to be fully initialized before proceeding. Or fix multilspy.
+            import time
+            time.sleep(5)
             symbol = input("Symbol name: ").strip()
             if not symbol:
                 print("No symbol provided.")
