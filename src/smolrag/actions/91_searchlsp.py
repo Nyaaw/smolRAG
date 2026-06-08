@@ -3,27 +3,24 @@ from smolrag.lsp import JavaLSPClient
 from smolrag.context_builder import ContextBuilder
 
 
-class ExplainAction(Action):
-    """Find a symbol via LSP and build a context block explaining it."""
+class SearchLspAction(Action):
+    """Search for symbols via LSP only (exact/camel-case prefix matching)."""
 
-    name = "explain-lsp"
+    name = "search-lsp"
 
     def run(self) -> None:
         client = JavaLSPClient(self.project_root)
         with client.start():
-            # FIXME: wait for the server to be fully initialized before proceeding. Or fix multilspy.
-            import time
-            time.sleep(5)
-            symbol = input("Symbol name: ").strip()
-            if not symbol:
-                print("No symbol provided.")
+            query = input("Query: ").strip()
+            if not query:
+                print("No query provided.")
                 return
 
-            snippets = client.find_symbols(symbol)
+            snippets = client.find_symbols(query)
 
         if not snippets:
-            print(f"No symbol matching '{symbol}' found.")
+            print(f"No symbol matching '{query}' found.")
             return
 
         builder = ContextBuilder()
-        print(builder.build(symbol, snippets))
+        print(builder.build(query, snippets))
