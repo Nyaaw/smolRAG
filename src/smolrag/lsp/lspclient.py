@@ -1,3 +1,7 @@
+import json
+import logging
+import os
+import sys
 from abc import ABC, abstractmethod
 from contextlib import contextmanager
 from typing import Generator, Any
@@ -5,6 +9,24 @@ from typing import Generator, Any
 from multilspy import SyncLanguageServer
 from multilspy.multilspy_config import MultilspyConfig, Language
 from multilspy.multilspy_logger import MultilspyLogger
+
+
+class _CleanHandler(logging.Handler):
+    def emit(self, record: logging.LogRecord) -> None:
+        try:
+            data = json.loads(record.getMessage())
+            msg = f"{data['time']}  {data['level']:<5}  {data['caller_file']}:{data['caller_line']}  {data['message']}"
+        except (json.JSONDecodeError, KeyError):
+            msg = record.getMessage()
+        sys.stderr.write(msg + "\n")
+
+
+_multilspy_logger = logging.getLogger("multilspy")
+_multilspy_logger.setLevel(
+    os.environ.get("SMOLRAG_LOG_LEVEL", "WARNING").upper()
+)
+if not _multilspy_logger.handlers:
+    _multilspy_logger.addHandler(_CleanHandler())
 
 
 class LspClient(ABC):

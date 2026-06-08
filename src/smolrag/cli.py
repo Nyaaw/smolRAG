@@ -21,6 +21,7 @@ def main() -> None:
         help="Action to run (omit to choose interactively)",
     )
     args = parser.parse_args()
+    args.project = os.path.abspath(args.project)
 
     actions = list_actions()
     if not actions:

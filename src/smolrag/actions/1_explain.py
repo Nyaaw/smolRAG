@@ -9,13 +9,13 @@ class ExplainAction(Action):
     name = "1-explain"
 
     def run(self) -> None:
-        symbol = input("Symbol name: ").strip()
-        if not symbol:
-            print("No symbol provided.")
-            return
-
         client = JavaLSPClient(self.project_root)
         with client.start():
+            symbol = input("Symbol name: ").strip()
+            if not symbol:
+                print("No symbol provided.")
+                return
+
             snippets = client.find_symbols(symbol)
 
         if not snippets:
