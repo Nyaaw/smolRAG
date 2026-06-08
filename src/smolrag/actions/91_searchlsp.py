@@ -6,7 +6,7 @@ from smolrag.context_builder import ContextBuilder
 class ExplainAction(Action):
     """Find a symbol via LSP and build a context block explaining it."""
 
-    name = "explain"
+    name = "explain-lsp"
 
     def run(self) -> None:
         client = JavaLSPClient(self.project_root)
