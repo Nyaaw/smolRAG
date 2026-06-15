@@ -1,5 +1,5 @@
 from smolrag.actions.action import Action
-from smolrag.lsp import JavaLSPClient, LspEnricher
+from smolrag.lsp import JavaLSPClient, JavaEnricher
 from smolrag.vector import QdrantRetriever
 from smolrag.context_builder import ContextBuilder
 from smolrag.dedup import dedup
@@ -14,7 +14,7 @@ class ExplainHybridAction(Action):
     def run(self) -> None:
         client = JavaLSPClient(self.project_root)
         retriever = QdrantRetriever(self.project_root)
-        enricher = LspEnricher(client, self.project_root)
+        enricher = JavaEnricher(client, self.project_root)
 
         with client.start():
             # FIXME: wait for the server to be fully initialized before proceeding. Or fix multilspy.
