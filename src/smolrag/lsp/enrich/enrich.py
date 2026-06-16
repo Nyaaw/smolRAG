@@ -12,8 +12,8 @@ class LanguageEnricher(ABC):
     (inheritance, type resolution, interface satisfaction, etc.).
     """
 
-    def __init__(self, client: LspClient, project_root: str) -> None:
-        self._client = client
+    def __init__(self, lspclient: LspClient, project_root: str) -> None:
+        self._lspclient = lspclient
         self._project_root = project_root
 
     @abstractmethod

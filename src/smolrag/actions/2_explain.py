@@ -25,11 +25,8 @@ class ExplainHybridAction(Action):
                 print("No symbol provided.")
                 return
 
-            lsp_snippets = client.find_symbols(symbol)
-            lsp_snippets = enricher.enrich(lsp_snippets)
-            bm25_snippets = retriever.search(symbol)
-
-        snippets = dedup(lsp_snippets + bm25_snippets)
+            raw = client.find_symbols(symbol) + retriever.search(symbol)
+            snippets = dedup(enricher.enrich(dedup(raw)))
 
         if not snippets:
             print(f"No results for '{symbol}'.")
