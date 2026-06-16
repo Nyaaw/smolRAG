@@ -1,24 +1,51 @@
+from collections import OrderedDict
+
 from smolrag.types import CodeSnippet
 
 
 def dedup(snippets: list[CodeSnippet]) -> list[CodeSnippet]:
-    """Remove overlapping :class:`CodeSnippet` entries, preserving order.
+    """Merge overlapping :class:`CodeSnippet` entries within each file.
 
-    Two snippets overlap when they belong to the same file and their line
-    ranges intersect.  The first occurrence wins, so place higher-quality
-    results (e.g. LSP) before lower-priority results (e.g. BM25).
+    When two snippets in the same file have intersecting line ranges,
+    they are merged into a single snippet whose range is the union of
+    the two and whose code is the concatenation of both (in original
+    order)
     """
-    seen: list[tuple[str, int, int]] = []
-    result: list[CodeSnippet] = []
-
+    files: OrderedDict[str, list[CodeSnippet]] = OrderedDict()
     for s in snippets:
-        overlaps = any(
-            s.path == path and s.start_line <= end and s.end_line >= start
-            for path, start, end in seen
-        )
-        if overlaps:
-            continue
-        seen.append((s.path, s.start_line, s.end_line))
-        result.append(s)
+        files.setdefault(s.path, []).append(s)
+
+    result: list[CodeSnippet] = []
+    for path, snippets_in_path in files.items():
+        # stable sort by start_line, then end_line
+        snippets_in_path.sort(key=lambda s: (s.start_line, s.end_line))
+        merged = _merge_overlapping(snippets_in_path)
+        result.extend(merged)
 
     return result
+
+
+def _merge_overlapping(
+    sorted_snippets: list[CodeSnippet],
+) -> list[CodeSnippet]:
+    merged: list[CodeSnippet] = []
+    current = sorted_snippets[0]
+
+    for s in sorted_snippets[1:]:
+        if s.start_line <= current.end_line:
+            # overlapping — drop the shared prefix from s
+            overlap_lines = current.end_line - s.start_line + 1
+            s_lines = s.code.split("\n")
+            tail = "\n".join(s_lines[overlap_lines:])
+            current = CodeSnippet(
+                code=current.code + "\n" + tail if tail else current.code,
+                path=current.path,
+                start_line=current.start_line,
+                end_line=max(current.end_line, s.end_line),
+            )
+        else:
+            merged.append(current)
+            current = s
+
+    merged.append(current)
+    return merged
