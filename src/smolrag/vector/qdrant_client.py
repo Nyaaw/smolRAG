@@ -82,6 +82,12 @@ class QdrantIndexer:
             self._client.upsert(collection_name=COLLECTION_NAME, points=points)
 
     def _ensure_collection(self) -> None:
+        """Drop and recreate the sparse-vector collection.
+
+        If a collection named ``COLLECTION_NAME`` already exists, delete
+        it (including all indexed points).  Then create a fresh collection
+        configured for sparse vectors only — no dense vector storage.
+        """
         if self._client.collection_exists(COLLECTION_NAME):
             self._client.delete_collection(COLLECTION_NAME)
         self._client.create_collection(

@@ -1,19 +1,20 @@
 from smolrag.actions.action import Action
-from smolrag.lsp import JavaLSPClient
+from smolrag.lsp import JavaLSPClient, JavaEnricher
 from smolrag.vector import QdrantRetriever
 from smolrag.context_builder import ContextBuilder
 from smolrag.dedup import dedup
 
 
 class ExplainHybridAction(Action):
-    """Find a symbol via LSP (exact/camel-case) and BM25 (substring),
-    deduplicate results, and build a context block."""
+    """Find a symbol via LSP, enrich with inheritance context,
+    fill gaps with BM25, and build a context block."""
 
     name = "explain"
 
     def run(self) -> None:
         client = JavaLSPClient(self.project_root)
         retriever = QdrantRetriever(self.project_root)
+        enricher = JavaEnricher(client, self.project_root)
 
         with client.start():
             # FIXME: wait for the server to be fully initialized before proceeding. Or fix multilspy.
@@ -24,10 +25,8 @@ class ExplainHybridAction(Action):
                 print("No symbol provided.")
                 return
 
-            lsp_snippets = client.find_symbols(symbol)
-            bm25_snippets = retriever.search(symbol)
-
-        snippets = dedup(lsp_snippets + bm25_snippets)
+            raw = client.find_symbols(symbol) + retriever.search(symbol)
+            snippets = dedup(enricher.enrich(dedup(raw)))
 
         if not snippets:
             print(f"No results for '{symbol}'.")
