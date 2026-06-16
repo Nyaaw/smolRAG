@@ -191,7 +191,8 @@ Formats a `list[CodeSnippet]` into a markdown block intended for copy/paste
 into an LLM chat. Headings, ` ```java ` code fences, file location indicators.
 
 ### Logging
-
+`dedup()` is O(n²) — fine for small result sets but not for large ones.
+- No dense embedding support yet; BM25 spar
 The multilspy logger is configured at `lspclient.py` module level:
 
 - `SMOLRAG_LOG_LEVEL` env var controls level (default: `WARNING`)
