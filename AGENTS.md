@@ -28,7 +28,7 @@ smolRAG/
 │   ├── cli.py                # argparse-based CLI: --project, action dispatch
 │   ├── types.py              # CodeSnippet dataclass (unified retrieval result)
 │   ├── context_builder.py    # ContextBuilder: formats CodeSnippets for LLMs
-│   ├── dedup.py              # dedup(): removes overlapping CodeSnippet ranges
+│   ├── dedup.py              # dedup(): merges overlapping CodeSnippet ranges
 │   ├── actions/              # Action plugins (auto-discovered by __init__.py)
 │   │   ├── __init__.py       # Auto-scans for Action subclasses
 │   │   ├── action.py         # Abstract Action base class
@@ -37,10 +37,13 @@ smolRAG/
 │   │   ├── 90_searchvector.py # SearchVectorAction: BM25-only search
 │   │   └── 91_searchlsp.py   # SearchLspAction: LSP-only search
 │   ├── lsp/                  # LSP integration sub-package
-│   │   ├── __init__.py       # Exports LspClient, JavaLSPClient, LspEnricher
+│   │   ├── __init__.py       # Exports LspClient, JavaLSPClient, LanguageEnricher, JavaEnricher
 │   │   ├── lspclient.py      # Abstract LspClient (ABC wrapping multilspy)
 │   │   ├── javalspclient.py  # JavaLSPClient: Eclipse JDTLS, find_symbols()
-│   │   └── enrich.py         # LspEnricher: inheritance context via LSP
+│   │   └── enrich/           # Language-specific enrichers
+│   │       ├── __init__.py   # Exports LanguageEnricher, JavaEnricher
+│   │       ├── enrich.py     # LanguageEnricher ABC: single abstract enrich()
+│   │       └── javaenrich.py # JavaEnricher: inheritance context via LSP
 │   └── vector/               # Vector retrieval sub-package
 │       ├── __init__.py       # Exports QdrantIndexer, QdrantRetriever, CodeChunker
 │       ├── chunker.py        # CodeChunker: text files → CodeSnippet chunks
@@ -96,11 +99,12 @@ Available actions:
 
 An action's `run()` method orchestrates the pipeline:
 1. Collect user input (e.g. symbol name)
-2. Call one or more retrievers (LSP, vector)
-3. Enrich with inheritance context (LSP)
-4. Deduplicate overlapping results
-5. Pass to `ContextBuilder.build()` for formatting
-6. Print the result
+2. Call both retrievers (LSP, vector) to get raw results
+3. Deduplicate the raw union (merge overlapping same-file ranges)
+4. Enrich with language-specific context (e.g. inheritance via LSP)
+5. Deduplicate again (enrichment may introduce new overlaps)
+6. Pass to `ContextBuilder.build()` for formatting
+7. Print the result
 
 ### Retrievers
 
@@ -138,14 +142,24 @@ specializes it for Eclipse JDTLS. The key high-level method is
 - Both share a cached `QdrantClient` instance (single file lock).
 - Clients are closed at exit via `atexit` handler to avoid shutdown `ImportError` noise.
 
-**LspEnricher (`src/smolrag/lsp/enrich.py`)**: Enriches `CodeSnippet` results
-with inheritance context:
+### Language enrichers (`src/smolrag/lsp/enrich/`)
+
+The `LanguageEnricher` ABC defines a single abstract method `enrich(snippets) ->
+list[CodeSnippet]`. Each language is a black box — no assumptions are made about
+what enrichment means (inheritance, type resolution, interface satisfaction,
+etc.). The caller is responsible for deduplication before and after.
+
+**JavaEnricher** (`javaenrich.py`) enriches Java `CodeSnippet` results with
+inheritance context:
 
 - Extracts `extends`/`implements` from class declarations via regex
 - For methods/fields not in a class declaration, finds the containing class via
   range containment in `document_symbols`
 - Calls `find_symbols()` on each parent/interface name to retrieve their code
 - Prepends parent code before the matched snippet
+
+To add a new language, drop a `*enricher.py` file in `lsp/enrich/` with a class
+that extends `LanguageEnricher` and implements `enrich()`.
 
 ### CodeSnippet (unified result type)
 
@@ -165,9 +179,11 @@ class CodeSnippet:
 
 ### Deduplication (`dedup.py`)
 
-`dedup(snippets: list[CodeSnippet]) -> list[CodeSnippet]` removes overlapping
-ranges (same file, intersecting line ranges). First occurrence wins — place
-higher-quality results (LSP) before lower-priority results (BM25).
+`dedup(snippets: list[CodeSnippet]) -> list[CodeSnippet]` merges overlapping
+ranges (same file, intersecting line ranges) into a single snippet whose range
+is the union and whose code is the concatenation of the non-overlapping parts.
+Snippets are grouped by file, sorted by start_line, then merged in a single
+O(n log n) pass. Order across files is preserved (first file seen comes first).
 
 ### ContextBuilder
 
@@ -190,6 +206,9 @@ The multilspy logger is configured at `lspclient.py` module level:
 - No emojis in code or comments
 - Standard `dataclasses` for data objects, `abc.ABC` for abstract classes
 - Uses `uv` as the package manager and build system (`uv_build` backend)
+- RST style comments for each class and functions
+- no use of "ASCII art" in comments (example: ------------- title ------------)
+
 
 ## Dependencies
 
@@ -212,5 +231,4 @@ The multilspy logger is configured at `lspclient.py` module level:
   TODO). A proper fix would wait for `ProjectStatus: OK` notification.
 - JDTLS `workspace/symbol` returns `None` or `[]` when the project has
   Maven/Gradle build errors that prevent full source indexing.
-- `dedup()` is O(n²) — fine for small result sets but not for large ones.
 - No dense embedding support yet; BM25 sparse only.

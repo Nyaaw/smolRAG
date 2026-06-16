@@ -28,12 +28,20 @@ def dedup(snippets: list[CodeSnippet]) -> list[CodeSnippet]:
 def _merge_overlapping(
     sorted_snippets: list[CodeSnippet],
 ) -> list[CodeSnippet]:
+    """Merge a sorted-by-start_line list of same-file snippets.
+
+    Walks the list left to right, accumulating adjacent or overlapping
+    snippets into a single CodeSnippet.  When two ranges intersect, the
+    shared prefix is stripped from the later snippet so no lines are
+    duplicated in the concatenated code.
+    """
     merged: list[CodeSnippet] = []
     current = sorted_snippets[0]
 
     for s in sorted_snippets[1:]:
         if s.start_line <= current.end_line:
-            # overlapping — drop the shared prefix from s
+            # Overlapping — strip the shared prefix from s so lines
+            # that appear in both snippets are not duplicated.
             overlap_lines = current.end_line - s.start_line + 1
             s_lines = s.code.split("\n")
             tail = "\n".join(s_lines[overlap_lines:])
@@ -44,6 +52,7 @@ def _merge_overlapping(
                 end_line=max(current.end_line, s.end_line),
             )
         else:
+            # Non-overlapping — finalize current, start a new group.
             merged.append(current)
             current = s
 
