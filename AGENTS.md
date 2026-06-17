@@ -16,7 +16,7 @@ with very large codebases.*
 assemble a deduplicated markdown block for copy/paste.
 
 **What is NOT built yet**: the tooling server for agentic LLMs (phase 2),
-dense embeddings, automated tests.
+dense embeddings.
 
 ## Project structure
 
@@ -48,6 +48,17 @@ smolRAG/
 │       ├── __init__.py       # Exports QdrantIndexer, QdrantRetriever, CodeChunker
 │       ├── chunker.py        # CodeChunker: text files → CodeSnippet chunks
 │       └── qdrant_client.py  # QdrantIndexer (BM25 embed + store), QdrantRetriever (search)
+├── tests/                     # pytest test suite
+│   ├── __init__.py
+│   ├── test_dedup.py           # Tests for dedup() overlap merging
+│   ├── test_types.py           # Tests for CodeSnippet.__str__
+│   ├── test_context_builder.py # Stub: ContextBuilder tests
+│   ├── actions/
+│   │   └── test_action.py      # Stub: Action base class tests
+│   ├── lsp/
+│   │   └── test_javaenrich.py  # Stub: JavaEnricher tests
+│   └── vector/
+│       └── test_chunker.py     # Stub: CodeChunker tests
 ├── pyproject.toml            # uv build config
 ├── README.md
 ├── .gitignore
@@ -73,11 +84,15 @@ uv run python -c "from smolrag import main, CodeSnippet, ContextBuilder"
 # Verify actions are discovered
 uv run python -c "from smolrag.actions import list_actions; print(list_actions())"
 
+# Run all tests
+uv run pytest tests/ -v
+
+# Run a single test file
+uv run pytest tests/test_dedup.py -v
+
 # Run a specific action directly
 uv run smolrag --project /path/to/project explain
 ```
-
-There are no unit tests yet.
 
 ## Architecture
 
@@ -191,8 +206,7 @@ Formats a `list[CodeSnippet]` into a markdown block intended for copy/paste
 into an LLM chat. Headings, ` ```java ` code fences, file location indicators.
 
 ### Logging
-`dedup()` is O(n²) — fine for small result sets but not for large ones.
-- No dense embedding support yet; BM25 spar
+
 The multilspy logger is configured at `lspclient.py` module level:
 
 - `SMOLRAG_LOG_LEVEL` env var controls level (default: `WARNING`)
@@ -209,6 +223,10 @@ The multilspy logger is configured at `lspclient.py` module level:
 - Uses `uv` as the package manager and build system (`uv_build` backend)
 - RST style comments for each class and functions
 - no use of "ASCII art" in comments (example: ------------- title ------------)
+- No module-level docstrings or file-header comments; comments go only on
+  functions, methods, and classes.
+- Test code follows the same style: no docstrings at the top of test files,
+  docstrings on test functions only when they add useful information.
 
 
 ## Dependencies
@@ -233,3 +251,7 @@ The multilspy logger is configured at `lspclient.py` module level:
 - JDTLS `workspace/symbol` returns `None` or `[]` when the project has
   Maven/Gradle build errors that prevent full source indexing.
 - No dense embedding support yet; BM25 sparse only.
+- `_merge_overlapping` in `dedup.py` computes overlap from line ranges, not
+  from actual code line counts. When a snippet has fewer code lines than its
+  range indicates, inner code can be silently dropped. Realistic test data
+  (where code lines match the range) masks this bug.
