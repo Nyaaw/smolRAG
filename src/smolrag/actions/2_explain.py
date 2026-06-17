@@ -20,17 +20,17 @@ class ExplainHybridAction(Action):
             # FIXME: wait for the server to be fully initialized before proceeding. Or fix multilspy.
             import time
             time.sleep(5)
-            symbol = input("Symbol name: ").strip()
-            if not symbol:
-                print("No symbol provided.")
+            query = input("Symbol name: ").strip()
+            if not query:
+                print("No query provided.")
                 return
 
-            raw = client.find_symbols(symbol) + retriever.search(symbol)
+            raw = client.find_symbols(query) + retriever.search(query)
             snippets = dedup(enricher.enrich(dedup(raw)))
 
         if not snippets:
-            print(f"No results for '{symbol}'.")
+            print(f"No results for '{query}'.")
             return
 
         builder = ContextBuilder()
-        print(builder.build(symbol, snippets))
+        print(builder.build(query, snippets))

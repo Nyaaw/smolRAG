@@ -19,7 +19,7 @@ class SearchLspAction(Action):
             snippets = client.find_symbols(query)
 
         if not snippets:
-            print(f"No symbol matching '{query}' found.")
+            print(f"No results for '{query}'.")
             return
 
         builder = ContextBuilder()
