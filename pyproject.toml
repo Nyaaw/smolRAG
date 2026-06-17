@@ -25,3 +25,9 @@ build-backend = "uv_build"
 dev = [
     "pytest>=9.1.0",
 ]
+
+[tool.pytest.ini_options]
+markers = [
+    "lsp: tests requiring LSP server (Java 17+, JDTLS, slow startup)",
+    "slow: tests that take significantly longer to run",
+]
