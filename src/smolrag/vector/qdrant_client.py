@@ -1,6 +1,9 @@
 import atexit
+import hashlib
+import os
 from pathlib import Path
 
+from platformdirs import user_cache_dir
 from qdrant_client import QdrantClient
 from qdrant_client.models import (
     PointStruct,
@@ -28,6 +31,32 @@ def _close_clients() -> None:
 atexit.register(_close_clients)
 
 
+def _get_cache_root() -> Path:
+    """Return the platform-appropriate cache root directory.
+
+    Respects ``SMOLRAG_CACHE_DIR`` env var, otherwise delegates to
+    :func:`platformdirs.user_cache_dir`.
+    """
+    if env := os.environ.get("SMOLRAG_CACHE_DIR"):
+        return Path(env)
+    return Path(user_cache_dir("smolrag"))
+
+
+def _get_storage_dir(project_root: str) -> str:
+    """Return the Qdrant storage directory for a project.
+
+    Uses ``{cache_root}/smolrag/qdrant/{basename}_{hash[:8]}/``
+    where the hash is SHA-256 of the resolved project path for
+    disambiguation between projects with the same basename.
+    """
+    resolved = str(Path(project_root).resolve())
+    basename = Path(resolved).name
+    hash_part = hashlib.sha256(resolved.encode()).hexdigest()[:8]
+    return str(
+        _get_cache_root() / "qdrant" / f"{basename}_{hash_part}"
+    )
+
+
 def _get_client(storage_dir: str) -> QdrantClient:
     if storage_dir not in _clients:
         _clients[storage_dir] = QdrantClient(path=storage_dir)
@@ -40,7 +69,7 @@ class QdrantIndexer:
 
     def __init__(self, project_root: str) -> None:
         self._project_root = project_root
-        storage_dir = str(Path(project_root) / ".smolrag" / "qdrant")
+        storage_dir = _get_storage_dir(project_root)
         Path(storage_dir).mkdir(parents=True, exist_ok=True)
         self._client = _get_client(storage_dir)
 
@@ -103,7 +132,7 @@ class QdrantRetriever:
     """Search indexed code chunks via BM25 sparse retrieval."""
 
     def __init__(self, project_root: str) -> None:
-        storage_dir = str(Path(project_root) / ".smolrag" / "qdrant")
+        storage_dir = _get_storage_dir(project_root)
         self._client = _get_client(storage_dir)
         self._model = SparseTextEmbedding(model_name=EMBEDDING_MODEL)
 

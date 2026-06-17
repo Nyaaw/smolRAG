@@ -12,7 +12,6 @@ SKIP_DIRS = {
     ".gradle",
     ".idea",
     ".m2",
-    ".smolrag",
     ".venv",
     ".vscode",
     "__pycache__",
