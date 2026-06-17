@@ -23,6 +23,8 @@ def main() -> None:
     args = parser.parse_args()
     args.project = os.path.abspath(args.project)
 
+    # TODO: interactive selection using numbers (the ones from the actions filenames)
+
     actions = list_actions()
     if not actions:
         print("No actions available.")

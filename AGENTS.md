@@ -18,6 +18,11 @@ assemble a deduplicated markdown block for copy/paste.
 **What is NOT built yet**: the tooling server for agentic LLMs (phase 2),
 dense embeddings.
 
+## Startup
+
+Before working on the codebase, search for all TODO and FIXME markers across
+`src/` and `tests/` using a fast search tool (e.g. grep, ripgrep).
+
 ## Project structure
 
 ```
