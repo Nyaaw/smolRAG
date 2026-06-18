@@ -26,7 +26,7 @@ class ExplainHybridAction(Action):
                 return
 
             raw = client.find_symbols(query) + retriever.search(query)
-            snippets = dedup(enricher.enrich(dedup(raw)))
+            snippets = dedup(enricher.enrich_parent(dedup(raw)))
 
         if not snippets:
             print(f"No results for '{query}'.")

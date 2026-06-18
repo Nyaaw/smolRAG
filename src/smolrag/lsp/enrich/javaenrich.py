@@ -28,7 +28,7 @@ class JavaEnricher(LanguageEnricher):
     Methods and fields that are not themselves class declarations
     are resolved to their containing class first."""
 
-    def enrich(self, snippets: list[CodeSnippet]) -> list[CodeSnippet]:
+    def enrich_parent(self, snippets: list[CodeSnippet]) -> list[CodeSnippet]:
         """Run inheritance enrichment on *snippets*.
 
         this method does not deduplicate (it may produce overlapping

@@ -17,6 +17,6 @@ class LanguageEnricher(ABC):
         self._project_root = project_root
 
     @abstractmethod
-    def enrich(self, snippets: list[CodeSnippet]) -> list[CodeSnippet]:
+    def enrich_parent(self, snippets: list[CodeSnippet]) -> list[CodeSnippet]:
         """Enrich *snippets* with language-specific context."""
         ...
