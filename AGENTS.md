@@ -55,15 +55,22 @@ smolRAG/
 │       └── qdrant_client.py  # QdrantIndexer (BM25 embed + store), QdrantRetriever (search)
 ├── tests/                     # pytest test suite
 │   ├── __init__.py
-│   ├── test_dedup.py           # Tests for dedup() overlap merging
-│   ├── test_types.py           # Tests for CodeSnippet.__str__
-│   ├── test_context_builder.py # Stub: ContextBuilder tests
+│   ├── conftest.py              # Shared fixtures (fixture_project, require_lsp)
+│   ├── test_dedup.py            # Tests for dedup() overlap merging (4 failures: known bug)
+│   ├── test_types.py            # Tests for CodeSnippet.__str__
+│   ├── test_context_builder.py  # Stub
+│   ├── e2e/                     # End-to-end tests
+│   │   ├── __init__.py
+│   │   ├── test_vector.py       # E2E: index + searchvector actions
+│   │   └── test_lsp.py          # E2E: search-lsp + explain actions (requires Java)
 │   ├── actions/
-│   │   └── test_action.py      # Stub: Action base class tests
+│   │   └── test_action.py       # Stub
 │   ├── lsp/
-│   │   └── test_javaenrich.py  # Stub: JavaEnricher tests
-│   └── vector/
-│       └── test_chunker.py     # Stub: CodeChunker tests
+│   │   └── test_javaenrich.py   # Stub
+│   ├── vector/
+│   │   └── test_chunker.py      # Stub
+│   └── fixtures/
+│       └── java-sample/         # Minimal Maven project (inheritance, interfaces, pets)
 ├── pyproject.toml            # uv build config
 ├── README.md
 ├── .gitignore
@@ -89,11 +96,23 @@ uv run python -c "from smolrag import main, CodeSnippet, ContextBuilder"
 # Verify actions are discovered
 uv run python -c "from smolrag.actions import list_actions; print(list_actions())"
 
-# Run all tests
+# Run all non-LSP tests (fast, no Java needed)
+uv run pytest tests/ -v -m "not lsp"
+
+# Run all tests including LSP (needs Java 17+)
 uv run pytest tests/ -v
 
-# Run a single test file
-uv run pytest tests/test_dedup.py -v
+# Run LSP tests only
+uv run pytest tests/ -v -m lsp
+
+# Run E2E tests only
+uv run pytest tests/e2e/ -v
+
+# Run a single test by name
+uv run pytest tests/e2e/test_vector.py::test_searchvector_finds_results -v
+
+# Run a single test via keyword match
+uv run pytest tests/e2e/ -v -k "empty"
 
 # Run a specific action directly
 uv run smolrag --project /path/to/project explain
@@ -150,13 +169,16 @@ specializes it for Eclipse JDTLS. The key high-level method is
 **Vector (`src/smolrag/vector/`)**: BM25 sparse retrieval via Qdrant local mode
 (SQLite-backed, no server needed) + fastembed `Qdrant/bm25` model.
 
-- **Chunker** (`chunker.py`): walks the project via `rglob("*")`, skips 18
+- **Chunker** (`chunker.py`): walks the project via `rglob("*")`, skips 17
   known build/vcs/tool dirs, detects text files via null-byte check (first 8KB),
   skips files >10MB and empty files. Chunks files ≤1000 lines as one snippet,
   splits larger files into 1000-line chunks with 100-line overlap.
 - **QdrantIndexer** (`qdrant_client.py`): chunks project, embeds with BM25
-  sparse vectors, upserts into local Qdrant collection stored at
-  `{project_root}/.smolrag/qdrant/`.
+  sparse vectors, upserts into local Qdrant collection stored in the OS
+  application cache directory: ``{cache_root}/smolrag/qdrant/{basename}_{hash[:8]}/``.
+  Uses `platformdirs` to detect the cache root (XDG on Linux,
+  ``~/Library/Caches`` on macOS, ``%LOCALAPPDATA%`` on Windows). Overridable
+  via ``SMOLRAG_CACHE_DIR`` env var.
 - **QdrantRetriever** (`qdrant_client.py`): embeds query, searches collection,
   returns `list[CodeSnippet]`.
 - Both share a cached `QdrantClient` instance (single file lock).
@@ -219,6 +241,32 @@ The multilspy logger is configured at `lspclient.py` module level:
   `TIME  LEVEL  CALLER:LINE  MESSAGE` format to stderr
 - Set `SMOLRAG_LOG_LEVEL=DEBUG` in launch.json for full JDTLS logs
 
+## E2E tests
+
+End-to-end tests live under `tests/e2e/` and drive the action pipeline as a
+black box: they instantiate the action, monkeypatch ``builtins.input`` with
+a query, and assert on ``capsys`` output.
+
+- **`test_vector.py`** — index + searchvector actions. Always run.
+- **`test_lsp.py`** — search-lsp + explain actions. Marked
+  ``@pytest.mark.lsp`` and ``@pytest.mark.slow``. Skip automatically when
+  Java 17+ is not available.
+
+Shared fixtures in ``tests/conftest.py``:
+
+- ``fixture_project`` — absolute path to ``tests/fixtures/java-sample/``
+- ``require_lsp`` — calls ``pytest.skip()`` if ``JAVA_HOME`` is not set or
+  ``java -version`` reports < 17
+
+## VSCode launch configurations
+
+``.vscode/launch.json`` provides debug launch configs:
+
+- **smolrag: explain java-sample fixture** — run the explain action on the fixture
+- **pytest: all tests** — ``-m "not lsp"`` (fast, no Java)
+- **pytest: all tests (including LSP)** — full suite
+- **pytest: e2e tests only** — ``tests/e2e/``
+
 ## Code style
 
 - Python 3.13+
@@ -236,7 +284,7 @@ The multilspy logger is configured at `lspclient.py` module level:
 
 ## Dependencies
 
-- **runtime**: `multilspy>=0.0.15`, `qdrant-client>=1.9.0`, `fastembed>=0.4.0`
+- **runtime**: `multilspy>=0.0.15`, `qdrant-client>=1.9.0`, `fastembed>=0.4.0`, `platformdirs>=4.0.0`
 - **build**: `uv_build>=0.11.10,<0.12.0`
 
 ## Key constraints
@@ -260,3 +308,6 @@ The multilspy logger is configured at `lspclient.py` module level:
   from actual code line counts. When a snippet has fewer code lines than its
   range indicates, inner code can be silently dropped. Realistic test data
   (where code lines match the range) masks this bug.
+- 4/9 dedup unit tests fail due to this `_merge_overlapping` bug
+  (`overlapping-multiline`, `overlap-single-line`, `overlap-chain`,
+  `overlap-mixed`).
