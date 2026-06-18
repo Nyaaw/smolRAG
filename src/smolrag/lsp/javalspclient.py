@@ -80,6 +80,7 @@ class JavaLSPClient(LspClient):
                         path=rel_path,
                         start_line=start_line,
                         end_line=end_line,
+                        source=f"LSP workspace search '{query}'",
                     )
                 )
 

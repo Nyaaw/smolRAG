@@ -102,6 +102,7 @@ class CodeChunker:
                     path=rel_path,
                     start_line=0,
                     end_line=total - 1,
+                    source="file chunk",
                 )
             ]
 
@@ -117,6 +118,7 @@ class CodeChunker:
                     path=rel_path,
                     start_line=start,
                     end_line=end - 1,
+                    source="file chunk",
                 )
             )
             # Stop if the last chunk already hit EOF

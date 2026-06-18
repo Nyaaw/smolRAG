@@ -45,11 +45,15 @@ def _merge_overlapping(
             overlap_lines = current.end_line - s.start_line + 1
             s_lines = s.code.split("\n")
             tail = "\n".join(s_lines[overlap_lines:])
+            merged_source = current.source
+            if s.source and s.source != current.source:
+                merged_source = f"{current.source}; {s.source}" if current.source else s.source
             current = CodeSnippet(
                 code=current.code + "\n" + tail if tail else current.code,
                 path=current.path,
                 start_line=current.start_line,
                 end_line=max(current.end_line, s.end_line),
+                source=merged_source,
             )
         else:
             # Non-overlapping — finalize current, start a new group.

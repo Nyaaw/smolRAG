@@ -47,6 +47,8 @@ class JavaEnricher(LanguageEnricher):
             for name in parent_names:
                 parent_snippets = self._lspclient.find_symbols(name)
                 if parent_snippets:
+                    for ps in parent_snippets:
+                        ps.source = f"parent of\n{s}"
                     enriched.extend(parent_snippets)
             enriched.append(s)
 
@@ -120,6 +122,7 @@ class JavaEnricher(LanguageEnricher):
                         path=snippet.path,
                         start_line=sym_start,
                         end_line=sym_end,
+                        source=f"containing class of\n{snippet}",
                     )
 
         return parent

@@ -161,6 +161,7 @@ class QdrantRetriever:
                 path=p.payload["path"],
                 start_line=p.payload["start_line"],
                 end_line=p.payload["end_line"],
+                source=f"BM25 search '{query}'",
             )
             for p in results.points
         ]
