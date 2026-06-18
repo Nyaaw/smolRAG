@@ -45,7 +45,7 @@ class JavaEnricher(LanguageEnricher):
         for s in snippets:
             parent_names = self._extract_extends_implements(s)
             for name in parent_names:
-                parent_snippets = self._client.find_symbols(name)
+                parent_snippets = self._lspclient.find_symbols(name)
                 if parent_snippets:
                     enriched.extend(parent_snippets)
             enriched.append(s)
@@ -91,7 +91,7 @@ class JavaEnricher(LanguageEnricher):
         Returns a CodeSnippet for that class, or None if not found."""
         abs_path = os.path.join(self._project_root, snippet.path)
         try:
-            doc_syms, _ = self._client.document_symbols(snippet.path)
+            doc_syms, _ = self._lspclient.document_symbols(snippet.path)
         except Exception:
             return None
 
