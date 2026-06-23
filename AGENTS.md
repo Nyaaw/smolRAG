@@ -34,6 +34,7 @@ smolRAG/
 │   ├── types.py                 # CodeSnippet dataclass (unified retrieval result)
 │   ├── context_builder.py       # ContextBuilder: formats CodeSnippets for LLMs
 │   ├── dedup.py                 # dedup(): merges overlapping CodeSnippet ranges
+│   ├── flatten.py               # flatten(): depth-first ordering via parent references
 │   ├── actions/                 # Action plugins (auto-discovered by __init__.py)
 │   │   ├── __init__.py          # Auto-scans for Action subclasses
 │   │   ├── action.py            # Abstract Action base class
@@ -215,6 +216,7 @@ class CodeSnippet:
     start_line: int  # 0-based
     end_line: int    # 0-based, inclusive
     source: str      # Describes where/how this snippet was retrieved
+    parent: CodeSnippet | None = None  # Points to the snippet that triggered enrichment (None for top-level results)
 
     def __str__(self) -> str:
         return f"{self.path}@{self.start_line}:{self.end_line}, {self.source}"
@@ -225,11 +227,19 @@ Each retrievers set the ``source`` field to identify the snippet's origin:
 - **LSP**: ``"LSP workspace search '{query}'"``
 - **BM25 / vector**: ``"BM25 search '{query}'"``
 - **Chunker**: ``"file chunk"``
-- **JavaEnricher (parent)**: ``"parent of\n{snippet}"``
-- **JavaEnricher (containing class)**: ``"containing class of\n{snippet}"``
+- **JavaEnricher (parent)**: ``"enrichment (parent)"``
+- **JavaEnricher (containing class)**: ``"enrichment (containing class)"``
 
-When deduplication merges overlapping snippets, source strings are concatenated
-with ``"; "`` as separator.
+The ``parent`` field forms a rootless tree of results. Top-level snippets
+(from LSP/BM25 retrievers) have ``parent = None``. Enrichment snippets have
+``parent`` set to the snippet they were derived from.  This tree is flattened
+into depth-first order by ``flatten.py`` before ``ContextBuilder`` formats the
+output.
+
+When deduplication merges overlapping snippets, the merged result inherits
+``source`` and ``parent`` from the first (highest-order) snippet in the group.
+Parent references that pointed to a merged-away original are redirected to the
+final merged object.
 
 ### Deduplication (`dedup.py`)
 
@@ -238,6 +248,20 @@ ranges (same file, intersecting line ranges) into a single snippet whose range
 is the union and whose code is the concatenation of the non-overlapping parts.
 Snippets are grouped by file, sorted by start_line, then merged in a single
 O(n log n) pass. Order across files is preserved (first file seen comes first).
+
+The merged snippet inherits ``source`` and ``parent`` from the first (highest-order)
+snippet in the merge group. After merging, ``_fixup_parents()`` redirects any
+``parent`` references that pointed to a merged-away original to the final merged
+object, keeping cross-file enrichment children correctly connected.
+
+### Flatten (`flatten.py`)
+
+`flatten(snippets: list[CodeSnippet]) -> list[CodeSnippet]` reorders
+snippets into depth-first order using their ``parent`` references.
+Siblings are emitted before their children (e.g. an LSP match comes before
+its enriched parent-class snippets), and sibling order from the input is
+preserved. ``ContextBuilder`` calls ``flatten()`` before producing the
+markdown block.
 
 ### ContextBuilder
 

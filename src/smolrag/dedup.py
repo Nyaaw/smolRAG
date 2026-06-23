@@ -9,24 +9,31 @@ def dedup(snippets: list[CodeSnippet]) -> list[CodeSnippet]:
     When two snippets in the same file have intersecting line ranges,
     they are merged into a single snippet whose range is the union of
     the two and whose code is the concatenation of both (in original
-    order)
+    order).  The merged snippet inherits ``source`` and ``parent`` from
+    the first (highest-order) snippet in the group.
+
+    After merging, any snippet whose ``parent`` referenced a merged-away
+    original is updated to point to the final merged object.
     """
+    orig_to_merged: dict[int, CodeSnippet] = {}
+
     files: OrderedDict[str, list[CodeSnippet]] = OrderedDict()
     for s in snippets:
         files.setdefault(s.path, []).append(s)
 
     result: list[CodeSnippet] = []
     for path, snippets_in_path in files.items():
-        # stable sort by start_line, then end_line
         snippets_in_path.sort(key=lambda s: (s.start_line, s.end_line))
-        merged = _merge_overlapping(snippets_in_path)
+        merged = _merge_overlapping(snippets_in_path, orig_to_merged)
         result.extend(merged)
 
+    _fixup_parents(result, orig_to_merged)
     return result
 
 
 def _merge_overlapping(
     sorted_snippets: list[CodeSnippet],
+    orig_to_merged: dict[int, CodeSnippet],
 ) -> list[CodeSnippet]:
     """Merge a sorted-by-start_line list of same-file snippets.
 
@@ -34,31 +41,52 @@ def _merge_overlapping(
     snippets into a single CodeSnippet.  When two ranges intersect, the
     shared prefix is stripped from the later snippet so no lines are
     duplicated in the concatenated code.
+
+    Records every original snippet's final merged counterpart in
+    *orig_to_merged* so that ``parent`` references can be fixed up
+    afterwards.
     """
     merged: list[CodeSnippet] = []
     current = sorted_snippets[0]
 
+    def _map(snippet: CodeSnippet, target: CodeSnippet) -> None:
+        orig_to_merged[id(snippet)] = target
+
+    _map(current, current)
+
     for s in sorted_snippets[1:]:
         if s.start_line <= current.end_line:
-            # Overlapping — strip the shared prefix from s so lines
-            # that appear in both snippets are not duplicated.
             overlap_lines = current.end_line - s.start_line + 1
             s_lines = s.code.split("\n")
             tail = "\n".join(s_lines[overlap_lines:])
-            merged_source = current.source
-            if s.source and s.source != current.source:
-                merged_source = f"{current.source}; {s.source}" if current.source else s.source
             current = CodeSnippet(
                 code=current.code + "\n" + tail if tail else current.code,
                 path=current.path,
                 start_line=current.start_line,
                 end_line=max(current.end_line, s.end_line),
-                source=merged_source,
+                source=current.source,
+                parent=current.parent,
             )
+            _map(s, current)
         else:
-            # Non-overlapping — finalize current, start a new group.
             merged.append(current)
             current = s
+            _map(current, current)
 
     merged.append(current)
+    _map(current, current)
     return merged
+
+
+def _fixup_parents(
+    snippets: list[CodeSnippet],
+    orig_to_merged: dict[int, CodeSnippet],
+) -> None:
+    """Redirect ``parent`` references that point to a merged-away
+    original to the final merged snippet."""
+    for s in snippets:
+        if s.parent is None:
+            continue
+        pid = id(s.parent)
+        if pid in orig_to_merged:
+            s.parent = orig_to_merged[pid]

@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from dataclasses import dataclass
 
 
@@ -10,6 +12,7 @@ class CodeSnippet:
     start_line: int
     end_line: int
     source: str
+    parent: CodeSnippet | None = None
 
     def __str__(self) -> str:
         return f"{self.path}@{self.start_line}:{self.end_line}, {self.source}"
