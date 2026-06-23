@@ -33,4 +33,5 @@ class ExplainHybridAction(Action):
             return
 
         builder = ContextBuilder()
-        print(builder.build(query, snippets))
+        context_query = f"Explain the following symbol: {query}"
+        print(builder.build(context_query, snippets))

@@ -21,7 +21,8 @@ def test_searchvector_finds_results(fixture_project, monkeypatch, capsys):
     SearchVectorAction(fixture_project).run()
     captured = capsys.readouterr()
 
-    assert f"Query: {query_input}" in captured.out
+    assert "## Retrieved code snippets:" in captured.out
+    assert f"BM25 search '{query_input}'" in captured.out
     assert "```java" in captured.out
     # Animal.java: abstract eat() with Javadoc
     assert "public abstract void eat();" in captured.out
@@ -77,7 +78,8 @@ def test_searchvector_output_has_context_block_structure(fixture_project, monkey
     captured = capsys.readouterr()
 
     assert "## Query:" in captured.out
-    assert "The following code was found in the project:" in captured.out
+    assert "## Retrieved code snippets:" in captured.out
+    assert "augmented with RAG capabilities" in captured.out
     assert "```java" in captured.out
     assert "```" in captured.out
     # Full Cat class code including Javadoc, constructor, and methods

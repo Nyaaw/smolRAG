@@ -145,8 +145,9 @@ An action's `run()` method orchestrates the pipeline:
 3. Deduplicate the raw union (merge overlapping same-file ranges)
 4. Enrich with language-specific context (e.g. inheritance via LSP)
 5. Deduplicate again (enrichment may introduce new overlaps)
-6. Pass to `ContextBuilder.build()` for formatting
-7. Print the result
+6. Build a contextual query (e.g. ``"Explain the following symbol: {query}"``)
+7. Pass to `ContextBuilder.build()` for formatting
+8. Print the result
 
 ### Retrievers
 
@@ -268,7 +269,17 @@ markdown block.
 ### ContextBuilder
 
 Formats a `list[CodeSnippet]` into a markdown block intended for copy/paste
-into an LLM chat. Headings, ` ```java ` code fences, file location indicators.
+into an LLM chat.  The output consists of:
+
+1. A system prompt: *"You are a helpful assistant, augmented with RAG
+   capabilities..."*
+2. ``## Query: {query}``
+3. ``## Retrieved code snippets:``
+4. For each snippet (in DFS order from :func:`flatten`): ``### {heading}``
+   followed by a `` ```java `` code fence and the snippet's code.
+   The heading includes the snippet's own source and, for enrichment
+   children, a reference to the parent snippet (e.g. ``"enrichment (parent)
+   of Cat.java@0:25, LSP workspace search 'Cat'"``).
 
 ### Logging
 
