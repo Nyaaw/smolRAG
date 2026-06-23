@@ -21,7 +21,7 @@ def _load_action(module_name: str) -> None:
             _registry[obj.name] = obj
 
 
-_actions_dir = os.path.dirname(__file__)
+_actions_dir = os.path.dirname(__file__) #TODO: only use pathlib
 for entry in os.listdir(_actions_dir):
     if entry.endswith(".py") and not entry.startswith("__"):
         module_name = entry.removesuffix(".py")

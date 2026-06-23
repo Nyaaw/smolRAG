@@ -41,6 +41,7 @@ smolRAG/
 │   │   ├── 1_index.py           # IndexAction: chunk project, build Qdrant BM25 index
 │   │   ├── 2_explain.py         # ExplainHybridAction: LSP + inheritance enrich + BM25
 │   │   ├── 3_reafactor_cost.py  # RefactorCostAction: LSP + references + enrich + BM25
+│   │   ├── 4_debug_stacktrace.py # DebugStacktraceAction: parse stacktrace, retrieve each frame
 │   │   ├── 90_searchvector.py   # SearchVectorAction: BM25-only search
 │   │   └── 91_searchlsp.py      # SearchLspAction: LSP-only search
 │   ├── lsp/                     # LSP integration sub-package
@@ -74,7 +75,7 @@ smolRAG/
 │   ├── vector/
 │   │   └── test_chunker.py      # Stub
 │   └── fixtures/
-│       └── java-sample/         # Minimal Maven project (inheritance, interfaces, pets)
+│       └── java-sample/         # Minimal Maven project (inheritance, interfaces, pets) + Main.java with intentional NPE
 ├── pyproject.toml               # uv build config
 ├── README.md
 ├── .gitignore
@@ -138,6 +139,7 @@ Available actions:
 | `index` | `1_index.py` | Walk project, detect text files, chunk, embed BM25 into local Qdrant |
 | `explain` | `2_explain.py` | Main action: LSP + inheritance enrich + BM25 fallback + dedup \\u2192 context block |
 | `refactor-cost` | `3_reafactor_cost.py` | Estimate refactoring cost: LSP + references + inheritance enrich + BM25 \\u2192 context block |
+| `debug-stacktrace` | `4_debug_stacktrace.py` | Parse a Java stacktrace, retrieve code for each frame via LSP + BM25 \\u2192 context block |
 | `debug-searchvector` | `90_searchvector.py` | BM25-only search (debug tool) |
 | `search-lsp` | `91_searchlsp.py` | LSP-only search (debug tool) |
 
@@ -145,6 +147,7 @@ An action's `run()` method orchestrates the pipeline:
 
 - **explain**: collect symbol name → LSP + BM25 → dedup → enrich → dedup → build context
 - **refactor-cost**: collect target + refactor description → LSP + BM25 → enrich → gather references → single dedup → build context
+- **debug-stacktrace**: paste stacktrace → parse frames (class, file, line) → LSP + BM25 per unique class name → dedup → build context (stacktrace embedded in query)
 - **debug-searchvector / search-lsp**: single-retriever, no enrichment
 
 All actions end with building a contextual query and passing it to
@@ -326,6 +329,30 @@ Shared fixtures in ``tests/conftest.py``:
 - ``require_lsp`` — calls ``pytest.skip()`` if ``JAVA_HOME`` is not set or
   ``java -version`` reports < 17
 
+### Java sample fixture
+
+``tests/fixtures/java-sample/`` is a minimal Maven project modelling a
+veterinary domain (``Animal``, ``Mammal``, ``Cat``, ``Dog``, ``Pet``,
+``Owner``, ``Veterinarian``, ``AnimalUtils``, ``Constants``).
+
+``Main.java`` exercises the model and contains an intentional
+``NullPointerException`` on line 31: ``vet.treat((Cat) null)``. The resulting
+stacktrace (5 frames, 2 files) can be pasted into ``debug-stacktrace`` for
+testing:
+
+.. code-block:: text
+
+    Exception in thread "main" java.lang.NullPointerException
+        at com.example.Veterinarian.treat(Veterinarian.java:50)
+        at com.example.Main.doCheckup(Main.java:31)
+        at com.example.Main.handlePet(Main.java:25)
+        at com.example.Main.runScenario(Main.java:18)
+        at com.example.Main.main(Main.java:12)
+
+Compile and run with::
+
+    javac -d /tmp/js $(find src -name "*.java") && java -cp /tmp/js com.example.Main
+
 ## VSCode launch configurations
 
 ``.vscode/launch.json`` provides debug launch configs:
@@ -379,3 +406,10 @@ Shared fixtures in ``tests/conftest.py``:
 - 4/9 dedup unit tests fail due to this `_merge_overlapping` bug
   (`overlapping-multiline`, `overlap-single-line`, `overlap-chain`,
   `overlap-mixed`).
+- `AnimalUtils.java` has a pre-existing compilation error: `species` is
+  ``protected`` in ``Animal`` (package ``com.example``) but ``AnimalUtils``
+  lives in ``com.example.util`` and does not extend ``Animal``. The LSP
+  (JDTLS) tolerates this and still indexes the source.
+- `test_searchvector_no_index_shows_message` now fails because ``Main.java``
+  contains the word "main", matching the test's query. The test previously
+  passed by accident (the old fixture had no file containing "main").
