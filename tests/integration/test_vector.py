@@ -77,7 +77,6 @@ def test_searchvector_output_has_context_block_structure(fixture_project, monkey
     SearchVectorAction(fixture_project).run()
     captured = capsys.readouterr()
 
-    assert "## Query:" in captured.out
     assert "## Retrieved code snippets:" in captured.out
     assert "augmented with RAG capabilities" in captured.out
     assert "```java" in captured.out

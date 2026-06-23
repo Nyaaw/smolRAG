@@ -72,7 +72,7 @@ def test_search_lsp_output_has_context_block(fixture_project, require_lsp, monke
     action.run()
     captured = capsys.readouterr()
 
-    assert "## Query:" in captured.out
+    assert "## Retrieved code snippets:" in captured.out
     assert "```java" in captured.out
     assert "public class Cat extends Mammal implements Pet" in captured.out
     assert "public Cat(String name, int age, String furColor)" in captured.out

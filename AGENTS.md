@@ -135,19 +135,17 @@ Available actions:
 | Name | File | Description |
 |------|------|-------------|
 | `index` | `1_index.py` | Walk project, detect text files, chunk, embed BM25 into local Qdrant |
-| `explain` | `2_explain.py` | Main action: LSP + inheritance enrich + BM25 fallback + dedup → context block |
+| `explain` | `2_explain.py` | Main action: LSP + inheritance enrich + BM25 fallback + dedup \\u2192 context block |
 | `debug-searchvector` | `90_searchvector.py` | BM25-only search (debug tool) |
 | `search-lsp` | `91_searchlsp.py` | LSP-only search (debug tool) |
 
 An action's `run()` method orchestrates the pipeline:
-1. Collect user input (e.g. symbol name)
-2. Call both retrievers (LSP, vector) to get raw results
-3. Deduplicate the raw union (merge overlapping same-file ranges)
-4. Enrich with language-specific context (e.g. inheritance via LSP)
-5. Deduplicate again (enrichment may introduce new overlaps)
-6. Build a contextual query (e.g. ``"Explain the following symbol: {query}"``)
-7. Pass to `ContextBuilder.build()` for formatting
-8. Print the result
+
+- **explain**: collect symbol name → LSP + BM25 → dedup → enrich → dedup → build context
+- **debug-searchvector / search-lsp**: single-retriever, no enrichment
+
+All actions end with building a contextual query and passing it to
+``ContextBuilder.build()`` for formatting.
 
 ### Retrievers
 
@@ -269,11 +267,15 @@ markdown block.
 ### ContextBuilder
 
 Formats a `list[CodeSnippet]` into a markdown block intended for copy/paste
-into an LLM chat.  The output consists of:
+into an LLM chat.  Methods are ``@staticmethod`` so callers use
+``ContextBuilder.build(...)`` without instantiation.
+
+The output consists of:
 
 1. A system prompt: *"You are a helpful assistant, augmented with RAG
    capabilities..."*
-2. ``## Query: {query}``
+2. ``## {query}`` (the contextual query from the action, e.g.
+   ``"Explain the following symbol: Cat"``)
 3. ``## Retrieved code snippets:``
 4. For each snippet (in DFS order from :func:`flatten`): ``### {heading}``
    followed by a `` ```java `` code fence and the snippet's code.

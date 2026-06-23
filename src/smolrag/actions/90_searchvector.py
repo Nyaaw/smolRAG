@@ -21,8 +21,9 @@ class SearchVectorAction(Action):
             print(f"No results for '{query}'.")
             return
 
-        builder = ContextBuilder()
-        context_query = "This is the retriever debug mode."
-        "Transmit any problems you see with the retrieval tool to the user."
-        f"the part being tested is the vector search, and the search query is: {query}"
-        print(builder.build(context_query, snippets))
+        context_query = (
+            "This is the retriever debug mode."
+            "Transmit any problems you see with the retrieval tool to the user."
+            f"the part being tested is the vector search, and the search query is: {query}"
+        )
+        print(ContextBuilder.build(context_query, snippets))

@@ -32,6 +32,5 @@ class ExplainHybridAction(Action):
             print(f"No results for '{query}'.")
             return
 
-        builder = ContextBuilder()
         context_query = f"Explain the following symbol: {query}"
-        print(builder.build(context_query, snippets))
+        print(ContextBuilder.build(context_query, snippets))
