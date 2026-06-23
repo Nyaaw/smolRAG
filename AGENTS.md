@@ -27,42 +27,42 @@ Before working on the codebase, search for all TODO and FIXME markers across
 
 ```
 smolRAG/
-├── src/smolrag/              # Main Python package
-│   ├── __init__.py           # Re-exports main(), CodeSnippet, ContextBuilder
-│   ├── __main__.py           # python -m smolrag entry point
-│   ├── cli.py                # argparse-based CLI: --project, action dispatch
-│   ├── types.py              # CodeSnippet dataclass (unified retrieval result)
-│   ├── context_builder.py    # ContextBuilder: formats CodeSnippets for LLMs
-│   ├── dedup.py              # dedup(): merges overlapping CodeSnippet ranges
-│   ├── actions/              # Action plugins (auto-discovered by __init__.py)
-│   │   ├── __init__.py       # Auto-scans for Action subclasses
-│   │   ├── action.py         # Abstract Action base class
-│   │   ├── 1_index.py        # IndexAction: chunk project, build Qdrant BM25 index
-│   │   ├── 2_explain.py      # ExplainHybridAction: LSP + inheritance enrich + BM25
-│   │   ├── 90_searchvector.py # SearchVectorAction: BM25-only search
-│   │   └── 91_searchlsp.py   # SearchLspAction: LSP-only search
-│   ├── lsp/                  # LSP integration sub-package
-│   │   ├── __init__.py       # Exports LspClient, JavaLSPClient, LanguageEnricher, JavaEnricher
-│   │   ├── lspclient.py      # Abstract LspClient (ABC wrapping multilspy)
-│   │   ├── javalspclient.py  # JavaLSPClient: Eclipse JDTLS, find_symbols()
-│   │   └── enrich/           # Language-specific enrichers
-│   │       ├── __init__.py   # Exports LanguageEnricher, JavaEnricher
-│   │       ├── enrich.py     # LanguageEnricher ABC: single abstract enrich()
-│   │       └── javaenrich.py # JavaEnricher: inheritance context via LSP
-│   └── vector/               # Vector retrieval sub-package
-│       ├── __init__.py       # Exports QdrantIndexer, QdrantRetriever, CodeChunker
-│       ├── chunker.py        # CodeChunker: text files → CodeSnippet chunks
-│       └── qdrant_client.py  # QdrantIndexer (BM25 embed + store), QdrantRetriever (search)
-├── tests/                     # pytest test suite
+├── src/smolrag/                 # Main Python package
+│   ├── __init__.py              # Re-exports main(), CodeSnippet, ContextBuilder
+│   ├── __main__.py              # python -m smolrag entry point
+│   ├── cli.py                   # argparse-based CLI: --project, action dispatch
+│   ├── types.py                 # CodeSnippet dataclass (unified retrieval result)
+│   ├── context_builder.py       # ContextBuilder: formats CodeSnippets for LLMs
+│   ├── dedup.py                 # dedup(): merges overlapping CodeSnippet ranges
+│   ├── actions/                 # Action plugins (auto-discovered by __init__.py)
+│   │   ├── __init__.py          # Auto-scans for Action subclasses
+│   │   ├── action.py            # Abstract Action base class
+│   │   ├── 1_index.py           # IndexAction: chunk project, build Qdrant BM25 index
+│   │   ├── 2_explain.py         # ExplainHybridAction: LSP + inheritance enrich + BM25
+│   │   ├── 90_searchvector.py   # SearchVectorAction: BM25-only search
+│   │   └── 91_searchlsp.py      # SearchLspAction: LSP-only search
+│   ├── lsp/                     # LSP integration sub-package
+│   │   ├── __init__.py          # Exports LspClient, JavaLSPClient, LanguageEnricher, JavaEnricher
+│   │   ├── lspclient.py         # Abstract LspClient (ABC wrapping multilspy)
+│   │   ├── javalspclient.py     # JavaLSPClient: Eclipse JDTLS, find_symbols()
+│   │   └── enrich/              # Language-specific enrichers
+│   │       ├── __init__.py      # Exports LanguageEnricher, JavaEnricher
+│   │       ├── enrich.py        # LanguageEnricher ABC: single abstract enrich()
+│   │       └── javaenrich.py    # JavaEnricher: inheritance context via LSP
+│   └── vector/                  # Vector retrieval sub-package
+│       ├── __init__.py          # Exports QdrantIndexer, QdrantRetriever, CodeChunker
+│       ├── chunker.py           # CodeChunker: text files → CodeSnippet chunks
+│       └── qdrant_client.py     # QdrantIndexer (BM25 embed + store), QdrantRetriever (search)
+├── tests/                       # pytest test suite
 │   ├── __init__.py
 │   ├── conftest.py              # Shared fixtures (fixture_project, require_lsp)
 │   ├── test_dedup.py            # Tests for dedup() overlap merging (4 failures: known bug)
 │   ├── test_types.py            # Tests for CodeSnippet.__str__
 │   ├── test_context_builder.py  # Stub
-│   ├── e2e/                     # End-to-end tests
+│   ├── integration/                     # End-to-end tests
 │   │   ├── __init__.py
-│   │   ├── test_vector.py       # E2E: index + searchvector actions
-│   │   └── test_lsp.py          # E2E: search-lsp + explain actions (requires Java)
+│   │   ├── test_vector.py       # integration: index + searchvector actions
+│   │   └── test_lsp.py          # integration: search-lsp + explain actions (requires Java)
 │   ├── actions/
 │   │   └── test_action.py       # Stub
 │   ├── lsp/
@@ -71,10 +71,10 @@ smolRAG/
 │   │   └── test_chunker.py      # Stub
 │   └── fixtures/
 │       └── java-sample/         # Minimal Maven project (inheritance, interfaces, pets)
-├── pyproject.toml            # uv build config
+├── pyproject.toml               # uv build config
 ├── README.md
 ├── .gitignore
-└── .python-version           # Python 3.13
+└── .python-version              # Python 3.13
 ```
 
 ## Setup commands
@@ -105,14 +105,14 @@ uv run pytest tests/ -v
 # Run LSP tests only
 uv run pytest tests/ -v -m lsp
 
-# Run E2E tests only
-uv run pytest tests/e2e/ -v
+# Run integration tests only
+uv run pytest tests/integration/ -v
 
 # Run a single test by name
-uv run pytest tests/e2e/test_vector.py::test_searchvector_finds_results -v
+uv run pytest tests/integration/test_vector.py::test_searchvector_finds_results -v
 
 # Run a single test via keyword match
-uv run pytest tests/e2e/ -v -k "empty"
+uv run pytest tests/integration/ -v -k "empty"
 
 # Run a specific action directly
 uv run smolrag --project /path/to/project explain
@@ -214,10 +214,22 @@ class CodeSnippet:
     path: str        # Relative path to project root
     start_line: int  # 0-based
     end_line: int    # 0-based, inclusive
+    source: str      # Describes where/how this snippet was retrieved
 
     def __str__(self) -> str:
-        return f"{self.path}@{self.start_line}:{self.end_line}"
+        return f"{self.path}@{self.start_line}:{self.end_line}, {self.source}"
 ```
+
+Each retrievers set the ``source`` field to identify the snippet's origin:
+
+- **LSP**: ``"LSP workspace search '{query}'"``
+- **BM25 / vector**: ``"BM25 search '{query}'"``
+- **Chunker**: ``"file chunk"``
+- **JavaEnricher (parent)**: ``"parent of\n{snippet}"``
+- **JavaEnricher (containing class)**: ``"containing class of\n{snippet}"``
+
+When deduplication merges overlapping snippets, source strings are concatenated
+with ``"; "`` as separator.
 
 ### Deduplication (`dedup.py`)
 
@@ -241,9 +253,9 @@ The multilspy logger is configured at `lspclient.py` module level:
   `TIME  LEVEL  CALLER:LINE  MESSAGE` format to stderr
 - Set `SMOLRAG_LOG_LEVEL=DEBUG` in launch.json for full JDTLS logs
 
-## E2E tests
+## integration tests
 
-End-to-end tests live under `tests/e2e/` and drive the action pipeline as a
+End-to-end tests live under `tests/integration/` and drive the action pipeline as a
 black box: they instantiate the action, monkeypatch ``builtins.input`` with
 a query, and assert on ``capsys`` output.
 
@@ -265,7 +277,7 @@ Shared fixtures in ``tests/conftest.py``:
 - **smolrag: explain java-sample fixture** — run the explain action on the fixture
 - **pytest: all tests** — ``-m "not lsp"`` (fast, no Java)
 - **pytest: all tests (including LSP)** — full suite
-- **pytest: e2e tests only** — ``tests/e2e/``
+- **pytest: integration tests only** — ``tests/integration/``
 
 ## Code style
 
