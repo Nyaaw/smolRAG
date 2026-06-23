@@ -4,7 +4,9 @@ import os
 import sys
 from abc import ABC, abstractmethod
 from contextlib import contextmanager
+from pathlib import Path, PurePath
 from typing import Generator, Any
+from urllib.parse import unquote
 
 from multilspy import SyncLanguageServer
 from multilspy.multilspy_config import MultilspyConfig, Language
@@ -52,6 +54,37 @@ class LspClient(ABC):
         self._lsp = SyncLanguageServer.create(
             config, logger, project_root, timeout=60
         )
+
+    def _uri_to_abs_path(self, uri: str) -> str | None:
+        """Convert a ``file://`` URI to an absolute filesystem path.
+
+        :returns: Absolute path, or ``None`` if *uri* is not a file URI.
+        """
+        if not uri.startswith("file://"):
+            return None
+        return unquote(uri.replace("file://", ""))
+
+    def _abs_to_rel_path(self, abs_path: str) -> str:
+        """Convert an absolute filesystem path to a project-relative path."""
+        return str(PurePath(os.path.relpath(abs_path, self._project_root)))
+
+    def _read_code_range(
+        self, abs_path: str, start_line: int, end_line: int
+    ) -> str | None:
+        """Read *abs_path* and return lines [*start_line*, *end_line*]
+        inclusive as a single string.
+
+        :returns: The extracted code, or ``None`` if the file cannot be
+            read or *start_line* is out of range.
+        """
+        try:
+            lines = Path(abs_path).read_text().splitlines()
+        except OSError:
+            return None
+        end_line = min(end_line, len(lines) - 1)
+        if start_line >= len(lines):
+            return None
+        return "\n".join(lines[start_line : end_line + 1])
 
     @contextmanager
     def start(self) -> Generator["LspClient", None, None]:

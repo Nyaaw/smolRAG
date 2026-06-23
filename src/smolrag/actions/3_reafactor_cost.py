@@ -1,7 +1,3 @@
-import os
-from pathlib import Path
-from urllib.parse import unquote
-
 from smolrag.actions.action import Action
 from smolrag.context_builder import ContextBuilder
 from smolrag.dedup import dedup
@@ -85,24 +81,18 @@ class RefactorCostAction(Action):
             batch: list[CodeSnippet] = []
             for ref in refs:
                 ref_uri = ref.get("uri", "")
-                if not ref_uri.startswith("file://"):
+                ref_abs = client._uri_to_abs_path(ref_uri)
+                if ref_abs is None:
                     continue
-                ref_abs = unquote(ref_uri.replace("file://", ""))
-                ref_rel = os.path.relpath(ref_abs, client._project_root)
+                ref_rel = client._abs_to_rel_path(ref_abs)
 
                 rng = ref["range"]
                 start_line = rng["start"]["line"]
                 end_line = rng["end"]["line"]
 
-                try:
-                    lines = Path(ref_abs).read_text().splitlines()
-                except OSError:
+                code = client._read_code_range(ref_abs, start_line, end_line)
+                if code is None:
                     continue
-
-                if start_line >= len(lines):
-                    continue
-                end_line = min(end_line, len(lines) - 1)
-                code = "\n".join(lines[start_line : end_line + 1])
 
                 batch.append(
                     CodeSnippet(

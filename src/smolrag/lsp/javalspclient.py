@@ -1,6 +1,4 @@
 import os
-from pathlib import Path, PurePath
-from urllib.parse import unquote
 
 from multilspy.multilspy_config import Language
 
@@ -48,24 +46,18 @@ class JavaLSPClient(LspClient):
         for m in matches:
             loc = m.get("location", {})
             uri = loc.get("uri", "")
-            if not uri.startswith("file://"):
+            abs_path = self._uri_to_abs_path(uri)
+            if abs_path is None:
                 continue
-            abs_path = unquote(uri.replace("file://", ""))
-            rel_path = str(PurePath(os.path.relpath(abs_path, self._project_root)))
+            rel_path = self._abs_to_rel_path(abs_path)
             by_file.setdefault(rel_path, []).append(m)
 
         snippets: list[CodeSnippet] = []
         for rel_path, ws_symbols in by_file.items():
             doc_syms, _ = self._lsp.request_document_symbols(rel_path)
-            # Index document symbols by name
             doc_by_name: dict[str, dict] = {s["name"]: s for s in doc_syms}
 
-            abs_path = os.path.join(self._project_root, rel_path)
-            try:
-                lines = Path(abs_path).read_text().splitlines()
-            except OSError:
-                continue
-
+            abs_path = os.path.join(self._project_root, rel_path) #TODO: only use pathlib
             for ws in ws_symbols:
                 doc = doc_by_name.get(ws["name"])
                 if doc is None:
@@ -73,7 +65,9 @@ class JavaLSPClient(LspClient):
                 rng = doc["range"]
                 start_line = rng["start"]["line"]
                 end_line = rng["end"]["line"]
-                code = "\n".join(lines[start_line : end_line + 1])
+                code = self._read_code_range(abs_path, start_line, end_line)
+                if code is None:
+                    continue
                 snippets.append(
                     CodeSnippet(
                         code=code,

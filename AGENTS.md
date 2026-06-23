@@ -153,14 +153,27 @@ All actions end with building a contextual query and passing it to
 ### Retrievers
 
 **LSP (`src/smolrag/lsp/`)**: Wraps `multilspy` (Microsoft's LSP client
-library). The `LspClient` ABC handles server lifecycle. `JavaLSPClient`
-specializes it for Eclipse JDTLS. The key high-level method is
-`find_symbols(query: str) -> list[CodeSnippet]`:
+library). The `LspClient` ABC handles server lifecycle and provides shared
+file-I/O helpers used by `JavaLSPClient`, `RefactorCostAction`, and
+`JavaEnricher` to avoid code duplication:
+
+- ``_uri_to_abs_path(uri) -> str | None`` — converts a ``file://`` URI to an
+  absolute filesystem path, or ``None`` for non-file URIs.
+- ``_abs_to_rel_path(abs_path) -> str`` — converts an absolute path to a
+  project-relative path via ``os.path.relpath``.
+- ``_read_code_range(abs_path, start_line, end_line) -> str | None`` — reads
+  a file from disk, extracts lines [*start_line*, *end_line*] inclusive, and
+  returns them as a single string. Returns ``None`` on ``OSError`` or
+  out-of-range *start_line*.
+
+`JavaLSPClient` specializes ``LspClient`` for Eclipse JDTLS. The key
+high-level method is `find_symbols(query: str) -> list[CodeSnippet]`:
 
 1. `workspace_symbols(query)` — finds matching symbols across the project (camel-case/prefix matching only)
 2. `document_symbols(rel_path)` — gets full ranges (comments + body) on each
    matching file
-3. Reads lines from disk and wraps them into `CodeSnippet` objects
+3. Reads lines from disk via ``_read_code_range`` and wraps them into
+   ``CodeSnippet`` objects
 
 **Known LSP quirks**:
 - `multilspy.start_server()` yields after `ServiceReady` but BEFORE background
