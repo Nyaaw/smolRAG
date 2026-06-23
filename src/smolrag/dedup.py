@@ -48,11 +48,11 @@ def _merge_overlapping(
     """
     merged: list[CodeSnippet] = []
     current = sorted_snippets[0]
+    group: list[CodeSnippet] = [current]
 
-    def _map(snippet: CodeSnippet, target: CodeSnippet) -> None:
-        orig_to_merged[id(snippet)] = target
-
-    _map(current, current)
+    def _finalize_group() -> None:
+        for g in group:
+            orig_to_merged[id(g)] = current
 
     for s in sorted_snippets[1:]:
         if s.start_line <= current.end_line:
@@ -67,14 +67,15 @@ def _merge_overlapping(
                 source=current.source,
                 parent=current.parent,
             )
-            _map(s, current)
+            group.append(s)
         else:
+            _finalize_group()
             merged.append(current)
             current = s
-            _map(current, current)
+            group = [current]
 
+    _finalize_group()
     merged.append(current)
-    _map(current, current)
     return merged
 
 

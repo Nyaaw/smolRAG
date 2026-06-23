@@ -57,7 +57,9 @@ smolRAG/
 ├── tests/                       # pytest test suite
 │   ├── __init__.py
 │   ├── conftest.py              # Shared fixtures (fixture_project, require_lsp)
-│   ├── test_dedup.py            # Tests for dedup() overlap merging (4 failures: known bug)
+│   ├── helpers.py               # Shared test helpers (_cs, _code)
+│   ├── test_dedup.py            # Tests for dedup() overlap merging + source/parent fixup
+│   ├── test_flatten.py          # Tests for flatten() DFS ordering
 │   ├── test_types.py            # Tests for CodeSnippet.__str__
 │   ├── test_context_builder.py  # Stub
 │   ├── integration/                     # End-to-end tests
