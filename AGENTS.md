@@ -40,6 +40,7 @@ smolRAG/
 │   │   ├── action.py            # Abstract Action base class
 │   │   ├── 1_index.py           # IndexAction: chunk project, build Qdrant BM25 index
 │   │   ├── 2_explain.py         # ExplainHybridAction: LSP + inheritance enrich + BM25
+│   │   ├── 3_reafactor_cost.py  # RefactorCostAction: LSP + references + enrich + BM25
 │   │   ├── 90_searchvector.py   # SearchVectorAction: BM25-only search
 │   │   └── 91_searchlsp.py      # SearchLspAction: LSP-only search
 │   ├── lsp/                     # LSP integration sub-package
@@ -136,12 +137,14 @@ Available actions:
 |------|------|-------------|
 | `index` | `1_index.py` | Walk project, detect text files, chunk, embed BM25 into local Qdrant |
 | `explain` | `2_explain.py` | Main action: LSP + inheritance enrich + BM25 fallback + dedup \\u2192 context block |
+| `refactor-cost` | `3_reafactor_cost.py` | Estimate refactoring cost: LSP + references + inheritance enrich + BM25 \\u2192 context block |
 | `debug-searchvector` | `90_searchvector.py` | BM25-only search (debug tool) |
 | `search-lsp` | `91_searchlsp.py` | LSP-only search (debug tool) |
 
 An action's `run()` method orchestrates the pipeline:
 
 - **explain**: collect symbol name → LSP + BM25 → dedup → enrich → dedup → build context
+- **refactor-cost**: collect target + refactor description → LSP + BM25 → enrich → gather references → single dedup → build context
 - **debug-searchvector / search-lsp**: single-retriever, no enrichment
 
 All actions end with building a contextual query and passing it to
@@ -230,6 +233,7 @@ Each retrievers set the ``source`` field to identify the snippet's origin:
 - **Chunker**: ``"file chunk"``
 - **JavaEnricher (parent)**: ``"enrichment (parent)"``
 - **JavaEnricher (containing class)**: ``"enrichment (containing class)"``
+- **RefactorCostAction (reference)**: ``"reference of '{target}'"``
 
 The ``parent`` field forms a rootless tree of results. Top-level snippets
 (from LSP/BM25 retrievers) have ``parent = None``. Enrichment snippets have
