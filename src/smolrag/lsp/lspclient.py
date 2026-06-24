@@ -51,6 +51,9 @@ class LspClient(ABC):
         self._project_root = project_root
         config = MultilspyConfig(code_language=self._language)
         logger = MultilspyLogger()
+        _multilspy_logger.setLevel(
+            os.environ.get("SMOLRAG_LOG_LEVEL", "WARNING").upper()
+        )
         self._lsp = SyncLanguageServer.create(
             config, logger, project_root, timeout=60
         )
