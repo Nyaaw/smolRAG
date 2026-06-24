@@ -22,7 +22,7 @@ public final class AnimalUtils {
      * @return a string describing the animal
      */
     public static String describe(Animal animal) {
-        return "Species: " + animal.species + ", Age: " + animal.getAge();
+        return "Species: " + animal.getSpecies() + ", Age: " + animal.getAge();
     }
 
     /**

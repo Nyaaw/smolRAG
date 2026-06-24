@@ -342,7 +342,7 @@ testing:
 
 .. code-block:: text
 
-    Exception in thread "main" java.lang.NullPointerException
+    Exception in thread "main" java.lang.NullPointerException: Cannot invoke "com.example.Cat.scratch()" because "cat" is null
         at com.example.Veterinarian.treat(Veterinarian.java:50)
         at com.example.Main.doCheckup(Main.java:31)
         at com.example.Main.handlePet(Main.java:25)
@@ -351,7 +351,7 @@ testing:
 
 Compile and run with::
 
-    javac -d /tmp/js $(find src -name "*.java") && java -cp /tmp/js com.example.Main
+    ./mvnw compile && java -cp target/classes com.example.Main
 
 ## VSCode launch configurations
 
@@ -406,10 +406,6 @@ Compile and run with::
 - 4/9 dedup unit tests fail due to this `_merge_overlapping` bug
   (`overlapping-multiline`, `overlap-single-line`, `overlap-chain`,
   `overlap-mixed`).
-- `AnimalUtils.java` has a pre-existing compilation error: `species` is
-  ``protected`` in ``Animal`` (package ``com.example``) but ``AnimalUtils``
-  lives in ``com.example.util`` and does not extend ``Animal``. The LSP
-  (JDTLS) tolerates this and still indexes the source.
 - `test_searchvector_no_index_shows_message` now fails because ``Main.java``
   contains the word "main", matching the test's query. The test previously
   passed by accident (the old fixture had no file containing "main").

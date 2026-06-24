@@ -31,6 +31,15 @@ public abstract class Animal {
     }
 
     /**
+     * Returns the species of this animal.
+     *
+     * @return the species name
+     */
+    public String getSpecies() {
+        return species;
+    }
+
+    /**
      * Returns the age of this animal.
      *
      * @return the age in years
