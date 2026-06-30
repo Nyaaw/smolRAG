@@ -32,9 +32,8 @@ smolRAG/
 │   ├── __main__.py              # python -m smolrag entry point
 │   ├── cli.py                   # argparse-based CLI: --project, action dispatch
 │   ├── types.py                 # CodeSnippet dataclass (unified retrieval result)
-│   ├── context_builder.py       # ContextBuilder: formats CodeSnippets for LLMs
+│   ├── context_builder.py       # ContextBuilder: flatten, token-limited format for LLMs
 │   ├── dedup.py                 # dedup(): merges overlapping CodeSnippet ranges
-│   ├── flatten.py               # flatten(): depth-first ordering via parent references
 │   ├── actions/                 # Action plugins (auto-discovered by __init__.py)
 │   │   ├── __init__.py          # Auto-scans for Action subclasses
 │   │   ├── action.py            # Abstract Action base class
@@ -237,6 +236,7 @@ class CodeSnippet:
     end_line: int    # 0-based, inclusive
     source: str      # Describes where/how this snippet was retrieved
     parent: CodeSnippet | None = None  # Points to the snippet that triggered enrichment (None for top-level results)
+    retrieval_depth: int = 0  # Distance from a direct retrieval root (0 for roots, +1 per enrichment level)
 
     def __str__(self) -> str:
         return f"{self.path}@{self.start_line}:{self.end_line}, {self.source}"
@@ -253,9 +253,11 @@ Each retrievers set the ``source`` field to identify the snippet's origin:
 
 The ``parent`` field forms a rootless tree of results. Top-level snippets
 (from LSP/BM25 retrievers) have ``parent = None``. Enrichment snippets have
-``parent`` set to the snippet they were derived from.  This tree is flattened
-into depth-first order by ``flatten.py`` before ``ContextBuilder`` formats the
-output.
+``parent`` set to the snippet they were derived from. ``retrieval_depth`` is
+set at the same time (0 for roots, +1 for each enrichment level), carried
+forward during dedup merges.  The tree is flattened into depth-first order
+by ``_flatten()`` (in ``context_builder.py``) before ``ContextBuilder``
+formats the output.
 
 When deduplication merges overlapping snippets, the merged result inherits
 ``source`` and ``parent`` from the first (highest-order) snippet in the group.
@@ -275,20 +277,27 @@ snippet in the merge group. After merging, ``_fixup_parents()`` redirects any
 ``parent`` references that pointed to a merged-away original to the final merged
 object, keeping cross-file enrichment children correctly connected.
 
-### Flatten (`flatten.py`)
+### Flatten (`context_builder.py`)
 
-`flatten(snippets: list[CodeSnippet]) -> list[CodeSnippet]` reorders
-snippets into depth-first order using their ``parent`` references.
+``_flatten(snippets: list[CodeSnippet]) -> list[CodeSnippet]`` is a
+module-level function in ``context_builder.py`` that reorders snippets
+into depth-first order using their ``parent`` references.
 Siblings are emitted before their children (e.g. an LSP match comes before
 its enriched parent-class snippets), and sibling order from the input is
-preserved. ``ContextBuilder`` calls ``flatten()`` before producing the
-markdown block.
+preserved. ``ContextBuilder.build()`` calls ``_flatten()`` before applying
+the token limit and producing the markdown block.
 
 ### ContextBuilder
 
 Formats a `list[CodeSnippet]` into a markdown block intended for copy/paste
 into an LLM chat.  Methods are ``@staticmethod`` so callers use
 ``ContextBuilder.build(...)`` without instantiation.
+
+**Token limit**: ``build()`` applies a horizontal cut when the total code
+tokens exceed 80 000 (3 characters = 1 token, only ``snippet.code``
+characters are counted).  Snippets are sorted by ``retrieval_depth``
+descending and the deepest ones are dropped first until the budget is met.
+DFS order from ``_flatten`` is preserved for the survivors.
 
 The output consists of:
 
@@ -297,7 +306,7 @@ The output consists of:
 2. ``## {query}`` (the contextual query from the action, e.g.
    ``"Explain the following symbol: Cat"``)
 3. ``## Retrieved code snippets:``
-4. For each snippet (in DFS order from :func:`flatten`): ``### {heading}``
+4. For each snippet (in DFS order from :func:`_flatten`): ``### {heading}``
    followed by a `` ```java `` code fence and the snippet's code.
    The heading includes the snippet's own source and, for enrichment
    children, a reference to the parent snippet (e.g. ``"enrichment (parent)

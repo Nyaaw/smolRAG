@@ -66,6 +66,7 @@ def _merge_overlapping(
                 end_line=max(current.end_line, s.end_line),
                 source=current.source,
                 parent=current.parent,
+                retrieval_depth=current.retrieval_depth,
             )
             group.append(s)
         else:

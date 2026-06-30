@@ -13,6 +13,7 @@ class CodeSnippet:
     end_line: int
     source: str
     parent: CodeSnippet | None = None
+    retrieval_depth: int = 0
 
     def __str__(self) -> str:
         return f"{self.path}@{self.start_line}:{self.end_line}, {self.source}"

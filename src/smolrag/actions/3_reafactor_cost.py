@@ -102,6 +102,7 @@ class RefactorCostAction(Action):
                         end_line=end_line,
                         source=f"reference of '{target}'",
                         parent=s,
+                        retrieval_depth=s.retrieval_depth + 1,
                     )
                 )
 

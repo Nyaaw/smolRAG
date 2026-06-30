@@ -1,5 +1,5 @@
 import pytest
-from smolrag.flatten import flatten
+from smolrag.context_builder import _flatten as flatten
 
 from .helpers import _cs
 

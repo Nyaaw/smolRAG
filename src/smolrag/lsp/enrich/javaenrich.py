@@ -50,6 +50,7 @@ class JavaEnricher(LanguageEnricher):
                     for ps in parent_snippets:
                         ps.source = "enrichment (parent)"
                         ps.parent = s
+                        ps.retrieval_depth = s.retrieval_depth + 1
                     enriched.extend(parent_snippets)
 
         return enriched
@@ -127,6 +128,7 @@ class JavaEnricher(LanguageEnricher):
                         end_line=sym_end,
                         source="enrichment (containing class)",
                         parent=snippet,
+                        retrieval_depth=snippet.retrieval_depth + 1,
                     )
 
         return parent
