@@ -1,4 +1,3 @@
-from smolrag.flatten import flatten
 from smolrag.types import CodeSnippet
 
 _MAX_CODE_TOKENS = 80_000
@@ -68,7 +67,7 @@ class ContextBuilder:
         parts: list[str] = [
             "You are a helpful assistant, augmented with RAG capabilities. "
             "You will answer the user's request using the code snippets "
-            "the RAG system retrieved for you.",
+            "the retrieval system retrieved for you.",
             "",
             f"## {query}",
             "",

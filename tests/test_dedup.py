@@ -76,7 +76,7 @@ class TestDedupSourceAndParent:
     def test_fixes_up_parent_references_cross_file(self):
         parent = _cs(_code(0, 4), "parent.java", 0, 3, source="lsp")
         parent2 = _cs(_code(2, 7), "parent.java", 2, 6, source="bm25")
-        child = _cs("child code", "child.java", 0, 1, source="enrichment (parent)", parent=parent)
+        child = _cs("child code", "child.java", 0, 1, source="superclass", parent=parent)
 
         result = dedup([parent, parent2, child])
 

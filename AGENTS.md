@@ -247,8 +247,8 @@ Each retrievers set the ``source`` field to identify the snippet's origin:
 - **LSP**: ``"LSP workspace search '{query}'"``
 - **BM25 / vector**: ``"BM25 search '{query}'"``
 - **Chunker**: ``"file chunk"``
-- **JavaEnricher (parent)**: ``"enrichment (parent)"``
-- **JavaEnricher (containing class)**: ``"enrichment (containing class)"``
+- **JavaEnricher (parent)**: ``"superclass"``
+- **JavaEnricher (containing class)**: ``"containing class"``
 - **RefactorCostAction (reference)**: ``"reference of '{target}'"``
 
 The ``parent`` field forms a rootless tree of results. Top-level snippets
@@ -309,8 +309,8 @@ The output consists of:
 4. For each snippet (in DFS order from :func:`_flatten`): ``### {heading}``
    followed by a `` ```java `` code fence and the snippet's code.
    The heading includes the snippet's own source and, for enrichment
-   children, a reference to the parent snippet (e.g. ``"enrichment (parent)
-   of Cat.java@0:25, LSP workspace search 'Cat'"``).
+   children, a reference to the parent snippet (e.g. ``"superclass
+   of Cat.java@0:25, source: LSP workspace search 'Cat'"``).
 
 ### Logging
 

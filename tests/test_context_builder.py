@@ -9,14 +9,14 @@ from tests.helpers import _cs
 def test_heading_no_parent():
     """Heading for a root snippet is just its string representation."""
     s = _cs("foo", "A.java", 0, 5, "LSP search 'query'")
-    assert ContextBuilder._heading(s) == "A.java@0:5, LSP search 'query'"
+    assert ContextBuilder._heading(s) == "A.java@0:5, source: LSP search 'query'"
 
 
 def test_heading_with_parent():
     """Heading for an enrichment child includes a reference to the parent."""
     parent = _cs("base", "A.java", 0, 5, "LSP search 'query'")
-    child = _cs("derived", "B.java", 10, 15, "enrichment (parent)", parent=parent)
-    assert ContextBuilder._heading(child) == "B.java@10:15, enrichment (parent) of A.java@0:5, LSP search 'query'"
+    child = _cs("derived", "B.java", 10, 15, "superclass", parent=parent)
+    assert ContextBuilder._heading(child) == "B.java@10:15, source: superclass of A.java@0:5, source: LSP search 'query'"
 
 
 def test_build_empty_snippets():
@@ -35,7 +35,7 @@ def test_build_single_snippet():
     result = ContextBuilder.build("Explain Main", [s])
 
     assert "## Explain Main" in result
-    assert "### Main.java@0:1, LSP search 'Main'" in result
+    assert "### Main.java@0:1, source: LSP search 'Main'" in result
     assert "```java\nint x = 1;\n```" in result
 
 
@@ -56,12 +56,12 @@ def test_build_with_parent_child():
     """Child snippets follow their parent in DFS order, headings reflect lineage."""
     parent = _cs("class Animal {}", "Animal.java", 0, 5, "LSP search 'Animal'")
     child = _cs("class Mammal extends Animal {}", "Mammal.java", 0, 3,
-                "enrichment (parent)", parent=parent)
+                "superclass", parent=parent)
 
     result = ContextBuilder.build("Explain Animal", [parent, child])
 
-    assert "### Animal.java@0:5, LSP search 'Animal'" in result
-    assert "### Mammal.java@0:3, enrichment (parent) of Animal.java@0:5, LSP search 'Animal'" in result
+    assert "### Animal.java@0:5, source: LSP search 'Animal'" in result
+    assert "### Mammal.java@0:3, source: superclass of Animal.java@0:5, source: LSP search 'Animal'" in result
     pos_parent = result.index("class Animal {}")
     pos_child = result.index("class Mammal")
     assert pos_parent < pos_child

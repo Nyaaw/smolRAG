@@ -48,7 +48,7 @@ class JavaEnricher(LanguageEnricher):
                 parent_snippets = self._lspclient.find_symbols(name)
                 if parent_snippets:
                     for ps in parent_snippets:
-                        ps.source = "enrichment (parent)"
+                        ps.source = "superclass or interface"
                         ps.parent = s
                         ps.retrieval_depth = s.retrieval_depth + 1
                     enriched.extend(parent_snippets)
@@ -126,7 +126,7 @@ class JavaEnricher(LanguageEnricher):
                         path=snippet.path,
                         start_line=sym_start,
                         end_line=sym_end,
-                        source="enrichment (containing class)",
+                        source="containing class",
                         parent=snippet,
                         retrieval_depth=snippet.retrieval_depth + 1,
                     )

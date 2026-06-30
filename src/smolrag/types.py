@@ -16,4 +16,4 @@ class CodeSnippet:
     retrieval_depth: int = 0
 
     def __str__(self) -> str:
-        return f"{self.path}@{self.start_line}:{self.end_line}, {self.source}"
+        return f"{self.path}@{self.start_line}:{self.end_line}, source: {self.source}"
