@@ -17,9 +17,6 @@ class ExplainHybridAction(Action):
         enricher = JavaEnricher(client, self.project_root)
 
         with client.start():
-            # FIXME: wait for the server to be fully initialized before proceeding. Or fix multilspy.
-            import time
-            time.sleep(5)
             query = input("Symbol name: ").strip()
             if not query:
                 print("No query provided.")

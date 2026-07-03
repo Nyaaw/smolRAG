@@ -22,10 +22,6 @@ class DebugStacktraceAction(Action):
         retriever = QdrantRetriever(self.project_root)
 
         with client.start():
-            # FIXME: wait for the server to be fully initialized before proceeding. Or fix multilspy.
-            import time
-            time.sleep(5)
-
             print("Paste the stacktrace (end with an empty line):")
             lines: list[str] = []
             while True:

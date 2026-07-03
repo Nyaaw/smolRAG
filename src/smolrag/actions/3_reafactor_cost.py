@@ -18,12 +18,6 @@ class RefactorCostAction(Action):
         enricher = JavaEnricher(client, self.project_root)
 
         with client.start():
-            # FIXME: wait for the server to be fully initialized before
-            # proceeding. Or fix multilspy.
-            import time
-
-            time.sleep(5)
-
             target = input("Refactor target: ").strip()
             if not target:
                 print("No target provided.")

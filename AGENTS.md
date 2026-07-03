@@ -178,10 +178,6 @@ high-level method is `find_symbols(query: str) -> list[CodeSnippet]`:
    ``CodeSnippet`` objects
 
 **Known LSP quirks**:
-- `multilspy.start_server()` yields after `ServiceReady` but BEFORE background
-  Maven/Gradle import and build jobs finish. There is a 5-second `time.sleep()`
-  workaround in `LspClient.start()`. The proper fix would be waiting for
-  `language/status` with `ProjectStatus: OK`.
 - JDTLS `workspace/symbol` does camel-case prefix matching (e.g. `"OutputRed"`
   finds `OutputRedirector`, but `"redirector"` does not). Use BM25 fallback for
   substring queries.
@@ -402,10 +398,7 @@ Compile and run with::
 
 ## Known issues / FIXMEs
 
-- `LspClient.start()` has a `time.sleep(5)` workaround because multilspy
-  yields before background build/index jobs finish (see `eclipse_jdtls.py:342`
-  TODO). A proper fix would wait for `ProjectStatus: OK` notification.
-- JDTLS `workspace/symbol` returns `None` or `[]` when the project has
+- JDTLS `workspace/symbol` returns ``None`` or ``[]`` when the project has
   Maven/Gradle build errors that prevent full source indexing.
 - No dense embedding support yet; BM25 sparse only.
 - `_merge_overlapping` in `dedup.py` computes overlap from line ranges, not

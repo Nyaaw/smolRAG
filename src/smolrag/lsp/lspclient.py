@@ -2,6 +2,7 @@ import json
 import logging
 import os
 import sys
+import threading
 from abc import ABC, abstractmethod
 from contextlib import contextmanager
 from pathlib import Path, PurePath
@@ -30,6 +31,11 @@ _multilspy_logger.setLevel(
 if not _multilspy_logger.handlers:
     _multilspy_logger.addHandler(_CleanHandler())
 
+_lsp_logger = logging.getLogger(__name__)
+_lsp_logger.setLevel(
+    os.environ.get("SMOLRAG_LOG_LEVEL", "WARNING").upper()
+)
+
 
 class LspClient(ABC):
     """Abstract base for language-specific LSP clients wrapping multilspy.
@@ -57,6 +63,31 @@ class LspClient(ABC):
         self._lsp = SyncLanguageServer.create(
             config, logger, project_root, timeout=60
         )
+        self._project_ready = threading.Event()
+        self._hook_notification_handler()
+
+    def _hook_notification_handler(self) -> None:
+        """Patch the server's ``on_notification`` to intercept ``language/status``.
+
+        When the language server registers its ``language/status``
+        notification handler, this wraps it to also detect
+        ``ProjectStatus`` and signal that project import/build is
+        complete via :attr:`_project_ready`.
+        """
+        server = self._lsp.language_server.server
+        original = server.on_notification
+
+        def patched(method, cb):
+            if method == "language/status":
+                async def wrapped(params):
+                    if params.get("type") == "ProjectStatus":
+                        self._project_ready.set()
+                    await cb(params)
+                original(method, wrapped)
+            else:
+                original(method, cb)
+
+        server.on_notification = patched
 
     def _uri_to_abs_path(self, uri: str) -> str | None:
         """Convert a ``file://`` URI to an absolute filesystem path.
@@ -93,11 +124,22 @@ class LspClient(ABC):
     def start(self) -> Generator["LspClient", None, None]:
         """Context manager that starts the LSP server.
 
+        Waits for the ``ProjectStatus`` notification (up to a timeout)
+        so that background Maven/Gradle import jobs finish before the
+        first LSP request.
+
         Usage:
             with client.start():
                 symbols = client.document_symbols("path/to/File.java")
         """
+        self._project_ready.clear()
+        print("Initializing Language Server...")
         with self._lsp.start_server():
+            if not self._project_ready.wait(timeout=60):
+                _lsp_logger.debug(
+                    "Timed out waiting for ProjectStatus notification; "
+                    "continuing anyway."
+                )
             yield self
 
     @abstractmethod
