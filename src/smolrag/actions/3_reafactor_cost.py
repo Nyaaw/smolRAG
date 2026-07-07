@@ -19,11 +19,15 @@ class RefactorCostAction(Action):
 
         with client.start():
             target = input("Refactor target: ").strip()
+            #TODO: replace with prompt_toolkit input
+
             if not target:
                 print("No target provided.")
                 return
 
             refactor = input("Refactor action: ").strip()
+            #TODO: replace with prompt_toolkit input
+
             if not refactor:
                 print("No refactor action provided.")
                 return

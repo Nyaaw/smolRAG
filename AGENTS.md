@@ -30,7 +30,7 @@ smolRAG/
 ├── src/smolrag/                 # Main Python package
 │   ├── __init__.py              # Re-exports main(), CodeSnippet, ContextBuilder
 │   ├── __main__.py              # python -m smolrag entry point
-│   ├── cli.py                   # argparse-based CLI: --project, action dispatch
+│   ├── cli.py                   # CLI: --project, action dispatch, prompt_toolkit interactive menus
 │   ├── types.py                 # CodeSnippet dataclass (unified retrieval result)
 │   ├── context_builder.py       # ContextBuilder: flatten, token-limited format for LLMs
 │   ├── dedup.py                 # dedup(): merges overlapping CodeSnippet ranges
@@ -131,6 +131,11 @@ one class that extends `Action` (from `action.py`) and sets a `name` attribute.
 The `actions/__init__.py` auto-discovers them on import — just drop a new
 `*.py` file and it's registered. No manual registration needed.
 
+Filenames use a numeric prefix (e.g. ``1_index.py``, ``90_searchvector.py``)
+that controls the order in interactive menus. Actions with a prefix >= 50 are
+considered debug-only. ``list_actions()`` returns ``list[Type[Action]]`` sorted
+by prefix.
+
 Available actions:
 
 | Name | File | Description |
@@ -152,6 +157,18 @@ An action's `run()` method orchestrates the pipeline:
 All actions end with building a contextual query and passing it to
 ``ContextBuilder.build()`` for formatting.
 
+### CLI
+
+The CLI entry point (``cli.py``) uses ``prompt_toolkit`` for interactive
+menus. On startup, it presents a mode selection:
+
+- **static**: prepare a prompt to copy/paste into an LLM chat (current focus)
+- **agentic**: connect to an agentic LLM (not yet implemented)
+- **config**: configuration options (not yet implemented)
+
+When running in ``static`` mode, the action can be passed as a positional
+argument or chosen interactively from a ``prompt_toolkit`` ``choice()`` menu.
+
 ### Retrievers
 
 **LSP (`src/smolrag/lsp/`)**: Wraps `multilspy` (Microsoft's LSP client
@@ -167,6 +184,13 @@ file-I/O helpers used by `JavaLSPClient`, `RefactorCostAction`, and
   a file from disk, extracts lines [*start_line*, *end_line*] inclusive, and
   returns them as a single string. Returns ``None`` on ``OSError`` or
   out-of-range *start_line*.
+
+``start()`` is a context manager that launches the LSP server and waits
+for a ``language/status`` ``ProjectStatus`` notification (up to 60 s timeout)
+before yielding, so that background Maven/Gradle import jobs finish. The
+wait is implemented by ``_hook_notification_handler()``, which patches the
+server's ``on_notification`` to intercept ``language/status`` and set a
+``threading.Event`` on ``ProjectStatus``.
 
 `JavaLSPClient` specializes ``LspClient`` for Eclipse JDTLS. The key
 high-level method is `find_symbols(query: str) -> list[CodeSnippet]`:
@@ -384,7 +408,7 @@ Compile and run with::
 
 ## Dependencies
 
-- **runtime**: `multilspy>=0.0.15`, `qdrant-client>=1.9.0`, `fastembed>=0.4.0`, `platformdirs>=4.0.0`
+- **runtime**: `multilspy>=0.0.15`, `qdrant-client>=1.9.0`, `fastembed>=0.4.0`, `platformdirs>=4.0.0`, `openai>=2.44.0`, `prompt-toolkit>=3.0.52`
 - **build**: `uv_build>=0.11.10,<0.12.0`
 
 ## Key constraints

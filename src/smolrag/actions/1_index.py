@@ -7,6 +7,7 @@ class IndexAction(Action):
     """Index a project into a local Qdrant collection for BM25 retrieval."""
 
     name = "index"
+    #TODO: add description for printing in choice menus
 
     def run(self) -> None:
         indexer = QdrantIndexer(self.project_root)

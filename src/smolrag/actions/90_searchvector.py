@@ -7,9 +7,12 @@ class SearchVectorAction(Action):
     """Search the BM25 index for code snippets matching a query."""
 
     name = "debug-searchvector"
+    #TODO: add description for printing in choice menus
 
     def run(self) -> None:
         query = input("Query: ").strip()
+        #TODO: replace with prompt_toolkit input
+
         if not query:
             print("No query provided.")
             return

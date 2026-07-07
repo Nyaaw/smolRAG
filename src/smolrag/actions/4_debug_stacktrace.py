@@ -15,7 +15,7 @@ class DebugStacktraceAction(Action):
     and build a context block for debugging."""
 
     name = "debug-stacktrace"
-
+    #TODO: add description for printing in choice menus
 
     def run(self) -> None:
         client = JavaLSPClient(self.project_root)
@@ -26,6 +26,8 @@ class DebugStacktraceAction(Action):
             lines: list[str] = []
             while True:
                 line = input()
+                #TODO: replace with prompt_toolkit input
+
                 if not line:
                     break
                 lines.append(line)

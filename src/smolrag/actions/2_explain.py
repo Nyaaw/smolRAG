@@ -10,6 +10,7 @@ class ExplainHybridAction(Action):
     fill gaps with BM25, and build a context block."""
 
     name = "explain"
+    #TODO: add description for printing in choice menus
 
     def run(self) -> None:
         client = JavaLSPClient(self.project_root)
@@ -18,6 +19,8 @@ class ExplainHybridAction(Action):
 
         with client.start():
             query = input("Symbol name: ").strip()
+            #TODO: replace with prompt_toolkit input
+
             if not query:
                 print("No query provided.")
                 return
