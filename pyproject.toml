@@ -14,6 +14,7 @@ dependencies = [
     "platformdirs>=4.0.0",
     "openai>=2.44.0",
     "prompt-toolkit>=3.0.52",
+    "python-dotenv>=1.0.0",
 ]
 
 [project.scripts]
@@ -32,4 +33,5 @@ dev = [
 markers = [
     "lsp: tests requiring LSP server (Java 17+, JDTLS, slow startup)",
     "slow: tests that take significantly longer to run",
+    "e2e: end-to-end tests that call an external LLM API (needs DEEPSEEK_API_KEY)",
 ]

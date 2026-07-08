@@ -69,11 +69,11 @@ class RefactorCostAction(Action):
         all_snippets: list[CodeSnippet] = []
 
         for s in lsp_snippets:
-            # Step 1: ask the LSP for every reference to this symbol
+            # ask the LSP for every reference to this symbol
             # across the entire workspace.
             refs = client.references(s.path, s.start_line, 0)
 
-            # Step 2: convert each reference Location into a CodeSnippet,
+            # convert each reference Location into a CodeSnippet,
             # then deduplicate the batch (same-file overlapping references
             # from the same symbol are merged).
             batch: list[CodeSnippet] = []
@@ -106,6 +106,6 @@ class RefactorCostAction(Action):
 
             all_snippets.extend(batch)
 
-        # Step 3: deduplicate across symbols (a reference may appear for
+        # deduplicate across symbols (a reference may appear for
         # multiple symbols of the same name in the same file).
         return dedup(all_snippets)

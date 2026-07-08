@@ -32,6 +32,7 @@ smolRAG/
 │   ├── __main__.py              # python -m smolrag entry point
 │   ├── cli.py                   # CLI: --project, action dispatch, prompt_toolkit interactive menus
 │   ├── types.py                 # CodeSnippet dataclass (unified retrieval result)
+│   ├── config.py                # DeepSeek API config: loads ~/.config/smolrag/.env via python-dotenv
 │   ├── context_builder.py       # ContextBuilder: flatten, token-limited format for LLMs
 │   ├── dedup.py                 # dedup(): merges overlapping CodeSnippet ranges
 │   ├── actions/                 # Action plugins (auto-discovered by __init__.py)
@@ -63,6 +64,9 @@ smolRAG/
 │   ├── test_flatten.py          # Tests for flatten() DFS ordering
 │   ├── test_types.py            # Tests for CodeSnippet.__str__
 │   ├── test_context_builder.py  # Stub
+│   ├── e2e/                             # LLM end-to-end tests (calls DeepSeek API, costs money)
+│   │   ├── __init__.py
+│   │   └── test_static_e2e.py   # One test per action: runs pipeline, sends context to DeepSeek, prints response
 │   ├── integration/                     # End-to-end tests
 │   │   ├── __init__.py
 │   │   ├── test_vector.py       # integration: index + searchvector actions
@@ -108,6 +112,15 @@ uv run pytest tests/ -v
 
 # Run LSP tests only
 uv run pytest tests/ -v -m lsp
+
+# Run e2e tests (calls DeepSeek API, costs money, needs DEEPSEEK_API_KEY)
+uv run pytest tests/e2e/ -v -s
+
+# Run non-LLM e2e test only (index build, no cost)
+uv run pytest tests/e2e/ -v -s -k index
+
+# Run all tests except e2e (no cost)
+uv run pytest tests/ -v -m "not e2e"
 
 # Run integration tests only
 uv run pytest tests/integration/ -v
@@ -341,6 +354,56 @@ The multilspy logger is configured at `lspclient.py` module level:
   `TIME  LEVEL  CALLER:LINE  MESSAGE` format to stderr
 - Set `SMOLRAG_LOG_LEVEL=DEBUG` in launch.json for full JDTLS logs
 
+## DeepSeek API configuration
+
+The ``src/smolrag/config.py`` module provides a single place for DeepSeek
+API settings. On import, it loads ``~/.config/smolrag/.env`` via
+``python-dotenv`` (if the file exists). Already-set environment variables
+take priority over the ``.env`` file.
+
+Exposed constants:
+
+- ``DEEPSEEK_API_KEY`` — API key (from env or ``~/.config/smolrag/.env``)
+- ``DEEPSEEK_MODEL`` — model name (default: ``deepseek-v4-flash``)
+- ``DEEPSEEK_BASE_URL`` — API endpoint (default: ``https://api.deepseek.com``)
+- ``DEEPSEEK_THINKING`` — thinking mode toggle (default: ``True``, set
+  ``DEEPSEEK_THINKING=0`` to disable)
+- ``DEEPSEEK_REASONING_EFFORT`` — chain-of-thought effort: ``"high"`` or
+  ``"max"`` (default: ``"high"``, only applies when thinking is enabled)
+
+The ``~/.config/smolrag/.env`` file is gitignored. Create it manually:
+
+.. code-block:: bash
+
+    mkdir -p ~/.config/smolrag
+    echo 'DEEPSEEK_API_KEY=sk-...' > ~/.config/smolrag/.env
+    # optional overrides:
+    # echo 'DEEPSEEK_THINKING=0' >> ~/.config/smolrag/.env
+    # echo 'DEEPSEEK_REASONING_EFFORT=max' >> ~/.config/smolrag/.env
+
+Thinking mode details: when enabled, the API returns ``reasoning_content``
+(chain-of-thought) alongside ``content`` (final answer). The ``temperature``,
+``top_p``, ``presence_penalty``, and ``frequency_penalty`` parameters have no
+effect in thinking mode. For multi-turn conversations with tool calls, the
+``reasoning_content`` must be passed back to the API in subsequent turns.
+
+## E2E tests
+
+``tests/e2e/test_static_e2e.py`` contains one test per action. Each test:
+
+1. Runs the action pipeline against ``tests/fixtures/java-sample/``
+2. Extracts the context block produced by ``ContextBuilder.build()``
+3. Sends it as a single user message to the DeepSeek API
+4. Prints the prompt, reasoning trace (if thinking is enabled), and
+   final answer
+
+Tests are marked ``@pytest.mark.e2e`` and skip automatically when
+``DEEPSEEK_API_KEY`` is not set. There are no assertions — the tests
+are human-validated and must not crash.
+
+The ``test_e2e_index`` test builds the BM25 index without calling the
+LLM (no cost). All other tests make one API call each.
+
 ## integration tests
 
 End-to-end tests live under `tests/integration/` and drive the action pipeline as a
@@ -355,8 +418,8 @@ a query, and assert on ``capsys`` output.
 Shared fixtures in ``tests/conftest.py``:
 
 - ``fixture_project`` — absolute path to ``tests/fixtures/java-sample/``
-- ``require_lsp`` — calls ``pytest.skip()`` if ``JAVA_HOME`` is not set or
-  ``java -version`` reports < 17
+- ``require_lsp`` — calls ``pytest.skip()`` if Java 17+ is not available
+  (checks ``JAVA_HOME`` first, falls back to ``java`` on ``PATH``)
 
 ### Java sample fixture
 
@@ -408,14 +471,14 @@ Compile and run with::
 
 ## Dependencies
 
-- **runtime**: `multilspy>=0.0.15`, `qdrant-client>=1.9.0`, `fastembed>=0.4.0`, `platformdirs>=4.0.0`, `openai>=2.44.0`, `prompt-toolkit>=3.0.52`
+- **runtime**: `multilspy>=0.0.15`, `qdrant-client>=1.9.0`, `fastembed>=0.4.0`, `platformdirs>=4.0.0`, `openai>=2.44.0`, `prompt-toolkit>=3.0.52`, `python-dotenv>=1.0.0`
 - **build**: `uv_build>=0.11.10,<0.12.0`
 
 ## Key constraints
 
 - Must work against large Java codebases (the project targets Apache Spark
   modules as test subjects)
-- Requires Java 17+ and `JAVA_HOME` set for JDTLS to function
+- Requires Java 17+ (``JAVA_HOME`` or ``java`` on ``PATH``) for JDTLS to function
 - Read-only — never modifies the target Java project
 - Actions are **not** agents. They are deterministic scripts that produce
   context blocks for a human to paste into their LLM

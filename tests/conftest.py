@@ -15,14 +15,12 @@ def fixture_project() -> str:
 
 
 def _java_available() -> bool:
-    """Return True if Java 17+ is available via JAVA_HOME."""
+    """Return True if Java 17+ is available (JAVA_HOME or PATH)."""
     java_home = os.environ.get("JAVA_HOME")
-    if not java_home:
-        return False
-    java = Path(java_home) / "bin" / "java"
+    java = str(Path(java_home) / "bin" / "java") if java_home else "java"
     try:
         result = subprocess.run(
-            [str(java), "-version"],
+            [java, "-version"],
             capture_output=True,
             text=True,
             timeout=10,
@@ -40,4 +38,4 @@ def _java_available() -> bool:
 def require_lsp() -> None:
     """Skip the test if Java 17+ is not available."""
     if not _java_available():
-        pytest.skip("Java 17+ not available (set JAVA_HOME)")
+        pytest.skip("Java 17+ not available (set JAVA_HOME or ensure java is on PATH)")

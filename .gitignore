@@ -1,4 +1,5 @@
 __pycache__
 .vscode
 .smolrag
+.env
 tests/fixtures/java-sample/target/
