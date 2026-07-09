@@ -29,7 +29,7 @@ def test_enrich_class_with_single_parent(fixture_project, require_lsp):
         "enriched parents should include Animal"
 
     for s in children:
-        assert s.source == "superclass"
+        assert s.source == "superclass or interface"
         assert s.parent is mammal
 
 
@@ -46,7 +46,7 @@ def test_enrich_class_with_extends_and_implements(fixture_project, require_lsp):
 
     parents = result[1:]
     parent_sources = {s.source for s in parents}
-    assert parent_sources == {"superclass"}
+    assert parent_sources == {"superclass or interface"}
 
     parent_names = {s.path for s in parents}
     assert parent_names == {"src/main/java/com/example/Mammal.java", "src/main/java/com/example/Pet.java"}
@@ -114,7 +114,7 @@ def test_enrich_method_finds_containing_class(fixture_project, require_lsp):
     assert parent_paths == {"src/main/java/com/example/Mammal.java", "src/main/java/com/example/Pet.java"}
 
     for s in parents:
-        assert s.source == "superclass"
+        assert s.source == "superclass or interface"
         assert s.parent is method
 
 
@@ -136,7 +136,7 @@ def test_enrich_method_standalone_class_no_inheritance(fixture_project, require_
 
 
 def test_enrich_parent_references_correct(fixture_project, require_lsp):
-    """Enriched children have source='superclass' and parent pointing to the original."""
+    """Enriched children have source='superclass or interface' and parent pointing to the original."""
     client = JavaLSPClient(fixture_project)
     with client.start():
         cat_snippets = client.find_symbols("Cat")
@@ -147,6 +147,6 @@ def test_enrich_parent_references_correct(fixture_project, require_lsp):
     for s in result:
         if s is cat:
             continue
-        assert s.source == "superclass", f"expected enrichment source, got {s.source}"
+        assert s.source == "superclass or interface", f"expected enrichment source, got {s.source}"
         assert s.parent is cat, f"expected parent to be Cat snippet, got {s.parent}"
         assert s.code, "enriched child must have code"

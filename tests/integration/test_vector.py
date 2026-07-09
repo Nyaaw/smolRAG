@@ -3,7 +3,7 @@ from smolrag.actions import list_actions
 
 def test_index_action_builds_index(fixture_project, capsys):
     """Index the fixture project and verify the completion message."""
-    IndexAction = list_actions()["index"]
+    IndexAction = {a.name: a for a in list_actions()}["index"]
     action = IndexAction(fixture_project)
     action.run()
     captured = capsys.readouterr()
@@ -12,10 +12,10 @@ def test_index_action_builds_index(fixture_project, capsys):
 
 def test_searchvector_finds_results(fixture_project, monkeypatch, capsys):
     """Index the fixture, then search for a term present in the code."""
-    IndexAction = list_actions()["index"]
+    IndexAction = {a.name: a for a in list_actions()}["index"]
     IndexAction(fixture_project).run()
 
-    SearchVectorAction = list_actions()["debug-searchvector"]
+    SearchVectorAction = {a.name: a for a in list_actions()}["debug-searchvector"]
     query_input = "eat"
     monkeypatch.setattr("builtins.input", lambda _: query_input)
     SearchVectorAction(fixture_project).run()
@@ -36,7 +36,7 @@ def test_searchvector_finds_results(fixture_project, monkeypatch, capsys):
 
 def test_searchvector_empty_query_shows_message(fixture_project, monkeypatch, capsys):
     """Empty query triggers the 'No query provided.' guard."""
-    SearchVectorAction = list_actions()["debug-searchvector"]
+    SearchVectorAction = {a.name: a for a in list_actions()}["debug-searchvector"]
     monkeypatch.setattr("builtins.input", lambda _: "")
     SearchVectorAction(fixture_project).run()
     captured = capsys.readouterr()
@@ -45,7 +45,7 @@ def test_searchvector_empty_query_shows_message(fixture_project, monkeypatch, ca
 
 def test_searchvector_no_index_shows_message(fixture_project, monkeypatch, capsys):
     """Search without a prior index build shows 'No results for'."""
-    SearchVectorAction = list_actions()["debug-searchvector"]
+    SearchVectorAction = {a.name: a for a in list_actions()}["debug-searchvector"]
     query_input = "main"
     monkeypatch.setattr("builtins.input", lambda _: query_input)
     SearchVectorAction(fixture_project).run()
@@ -55,10 +55,10 @@ def test_searchvector_no_index_shows_message(fixture_project, monkeypatch, capsy
 
 def test_searchvector_nonsense_returns_empty(fixture_project, monkeypatch, capsys):
     """A nonsense query that matches nothing shows 'No results for'."""
-    IndexAction = list_actions()["index"]
+    IndexAction = {a.name: a for a in list_actions()}["index"]
     IndexAction(fixture_project).run()
 
-    SearchVectorAction = list_actions()["debug-searchvector"]
+    SearchVectorAction = {a.name: a for a in list_actions()}["debug-searchvector"]
     nonsense = "xyznonexistent123"
     monkeypatch.setattr("builtins.input", lambda _: nonsense)
     SearchVectorAction(fixture_project).run()
@@ -69,10 +69,10 @@ def test_searchvector_nonsense_returns_empty(fixture_project, monkeypatch, capsy
 def test_searchvector_output_has_context_block_structure(fixture_project, monkeypatch, capsys):
     """The output follows the ContextBuilder markdown format and contains
     the full source code of matching files."""
-    IndexAction = list_actions()["index"]
+    IndexAction = {a.name: a for a in list_actions()}["index"]
     IndexAction(fixture_project).run()
 
-    SearchVectorAction = list_actions()["debug-searchvector"]
+    SearchVectorAction = {a.name: a for a in list_actions()}["debug-searchvector"]
     monkeypatch.setattr("builtins.input", lambda _: "Cat")
     SearchVectorAction(fixture_project).run()
     captured = capsys.readouterr()

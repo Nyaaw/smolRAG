@@ -7,7 +7,7 @@ pytestmark = [pytest.mark.lsp, pytest.mark.slow]
 
 def test_search_lsp_finds_class(fixture_project, require_lsp, monkeypatch, capsys):
     """Search LSP for 'Cat' and verify the full class code with Javadoc."""
-    SearchLspAction = list_actions()["search-lsp"]
+    SearchLspAction = {a.name: a for a in list_actions()}["search-lsp"]
     action = SearchLspAction(fixture_project)
     monkeypatch.setattr("builtins.input", lambda _: "Cat")
     action.run()
@@ -28,7 +28,7 @@ def test_search_lsp_finds_class(fixture_project, require_lsp, monkeypatch, capsy
 
 def test_search_lsp_finds_interface(fixture_project, require_lsp, monkeypatch, capsys):
     """Search LSP for 'Pet' and verify the full interface code with Javadoc."""
-    SearchLspAction = list_actions()["search-lsp"]
+    SearchLspAction = {a.name: a for a in list_actions()}["search-lsp"]
     action = SearchLspAction(fixture_project)
     monkeypatch.setattr("builtins.input", lambda _: "Pet")
     action.run()
@@ -44,7 +44,7 @@ def test_search_lsp_finds_interface(fixture_project, require_lsp, monkeypatch, c
 
 def test_search_lsp_no_match_shows_message(fixture_project, require_lsp, monkeypatch, capsys):
     """Searching for a non-existent symbol shows the 'No results' message."""
-    SearchLspAction = list_actions()["search-lsp"]
+    SearchLspAction = {a.name: a for a in list_actions()}["search-lsp"]
     action = SearchLspAction(fixture_project)
     monkeypatch.setattr("builtins.input", lambda _: "NoSuchClassXYZ")
     action.run()
@@ -55,7 +55,7 @@ def test_search_lsp_no_match_shows_message(fixture_project, require_lsp, monkeyp
 
 def test_search_lsp_empty_query_shows_message(fixture_project, require_lsp, monkeypatch, capsys):
     """Empty query shows 'No query provided.'"""
-    SearchLspAction = list_actions()["search-lsp"]
+    SearchLspAction = {a.name: a for a in list_actions()}["search-lsp"]
     action = SearchLspAction(fixture_project)
     monkeypatch.setattr("builtins.input", lambda _: "")
     action.run()
@@ -66,7 +66,7 @@ def test_search_lsp_empty_query_shows_message(fixture_project, require_lsp, monk
 
 def test_search_lsp_output_has_context_block(fixture_project, require_lsp, monkeypatch, capsys):
     """LSP search output follows ContextBuilder markdown format with real code."""
-    SearchLspAction = list_actions()["search-lsp"]
+    SearchLspAction = {a.name: a for a in list_actions()}["search-lsp"]
     action = SearchLspAction(fixture_project)
     monkeypatch.setattr("builtins.input", lambda _: "Cat")
     action.run()
@@ -86,16 +86,16 @@ def test_explain_action_finds_class_with_inheritance(fixture_project, require_ls
     Verifies that the target class code is present and that inheritance
     enrichment pulls in parent class and interface definitions.
     """
-    IndexAction = list_actions()["index"]
+    IndexAction = {a.name: a for a in list_actions()}["index"]
     IndexAction(fixture_project).run()
 
-    ExplainAction = list_actions()["explain"]
+    ExplainAction = {a.name: a for a in list_actions()}["explain"]
     action = ExplainAction(fixture_project)
     monkeypatch.setattr("builtins.input", lambda _: "Cat")
     action.run()
     captured = capsys.readouterr()
 
-    assert "## Query: Cat" in captured.out
+    assert "Explain the following symbol: Cat" in captured.out
     assert "```java" in captured.out
     # Target class
     assert "public class Cat extends Mammal implements Pet" in captured.out
