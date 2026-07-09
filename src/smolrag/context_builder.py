@@ -1,7 +1,12 @@
-from smolrag.types import CodeSnippet
+from smolrag.codesnippet import CodeSnippet
 
 _MAX_CODE_TOKENS = 80_000
 _CHARS_PER_TOKEN = 3
+
+#TODO: ids for each codesnippet to make the context more readable
+#TODO: include line numbers if the LLMs struggle with counting lines
+#TODO: include total line count for every file
+#TODO: change wording of some codesnippets source.
 
 
 def _flatten(snippets: list[CodeSnippet]) -> list[CodeSnippet]:
@@ -83,6 +88,7 @@ class ContextBuilder:
             parts.append("")
         return "\n".join(parts)
 
+    #TODO: move logic to codesnippet.py (__str__())
     @staticmethod
     def _heading(snippet: CodeSnippet) -> str:
         """Build a heading for *snippet* that includes its source and,

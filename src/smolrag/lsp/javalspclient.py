@@ -3,7 +3,7 @@ import os
 from multilspy.multilspy_config import Language
 
 from smolrag.lsp.lspclient import LspClient
-from smolrag.types import CodeSnippet
+from smolrag.codesnippet import CodeSnippet
 
 
 class JavaLSPClient(LspClient):

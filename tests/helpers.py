@@ -1,4 +1,4 @@
-from smolrag.types import CodeSnippet
+from smolrag.codesnippet import CodeSnippet
 
 
 def _cs(code: str, path: str, start: int, end: int, source: str = "", parent: CodeSnippet | None = None) -> CodeSnippet:

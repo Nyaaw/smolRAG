@@ -26,8 +26,6 @@ def main() -> None:
         args = parser.parse_args()
         args.project = os.path.abspath(args.project) #TODO: only use pathlib
 
-        # TODO: interactive selection using numbers (the ones from the actions filenames)
-
         mode_choice = choice("What would you like to do ?", options=[
             ("static", "static: prepare a prompt to copy/paste in your favorite LLM chat"),
             ("agent", "agentic: connect to an agentic LLM and let it decide what to do on your codebase")

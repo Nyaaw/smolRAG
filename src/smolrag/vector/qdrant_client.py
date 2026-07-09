@@ -12,7 +12,7 @@ from qdrant_client.models import (
 )
 from fastembed import SparseTextEmbedding
 
-from smolrag.types import CodeSnippet
+from smolrag.codesnippet import CodeSnippet
 from smolrag.vector.chunker import CodeChunker
 
 COLLECTION_NAME = "smolrag_code"

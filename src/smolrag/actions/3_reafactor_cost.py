@@ -2,7 +2,7 @@ from smolrag.actions.action import Action
 from smolrag.context_builder import ContextBuilder
 from smolrag.dedup import dedup
 from smolrag.lsp import JavaLSPClient, JavaEnricher
-from smolrag.types import CodeSnippet
+from smolrag.codesnippet import CodeSnippet
 from smolrag.vector import QdrantRetriever
 
 

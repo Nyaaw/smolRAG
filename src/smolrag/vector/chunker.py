@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from smolrag.types import CodeSnippet
+from smolrag.codesnippet import CodeSnippet
 
 CHUNK_LINES = 1000
 OVERLAP_LINES = 100

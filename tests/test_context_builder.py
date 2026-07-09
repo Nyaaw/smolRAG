@@ -1,7 +1,7 @@
 import pytest
 
 from smolrag.context_builder import ContextBuilder
-from smolrag.types import CodeSnippet
+from smolrag.codesnippet import CodeSnippet
 
 from tests.helpers import _cs
 

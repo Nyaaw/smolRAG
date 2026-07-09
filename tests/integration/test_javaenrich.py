@@ -1,7 +1,7 @@
 import pytest
 
 from smolrag.lsp import JavaLSPClient, JavaEnricher
-from smolrag.types import CodeSnippet
+from smolrag.codesnippet import CodeSnippet
 
 pytestmark = [pytest.mark.lsp, pytest.mark.slow]
 

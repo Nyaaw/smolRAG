@@ -50,6 +50,7 @@ def test_searchvector_no_index_shows_message(fixture_project, monkeypatch, capsy
     monkeypatch.setattr("builtins.input", lambda _: query_input)
     SearchVectorAction(fixture_project).run()
     captured = capsys.readouterr()
+    #TODO: delete index action or better index handling for tests
     assert f"No results for '{query_input}'." in captured.out
 
 

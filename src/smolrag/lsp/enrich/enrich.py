@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 
 from smolrag.lsp.lspclient import LspClient
-from smolrag.types import CodeSnippet
+from smolrag.codesnippet import CodeSnippet
 
 
 class LanguageEnricher(ABC):

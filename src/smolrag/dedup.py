@@ -1,6 +1,6 @@
 from collections import OrderedDict
 
-from smolrag.types import CodeSnippet
+from smolrag.codesnippet import CodeSnippet
 
 
 def dedup(snippets: list[CodeSnippet]) -> list[CodeSnippet]:

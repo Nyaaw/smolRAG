@@ -3,7 +3,7 @@ import re
 
 from smolrag.lsp.enrich.enrich import LanguageEnricher
 from smolrag.lsp.javalspclient import JavaLSPClient
-from smolrag.types import CodeSnippet
+from smolrag.codesnippet import CodeSnippet
 
 # Java-specific regex for class inheritance patterns
 
