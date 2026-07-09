@@ -11,12 +11,16 @@ This is a bachelor's degree final project (Data Engineering, ~450h). The
 research question is: *how to work around LLM context window limits when dealing
 with very large codebases.*
 
-**Current phase**: a CLI tool with auto-discovered actions that call retrievers
-(LSP + BM25 vector), enrich results with inheritance context via LSP, and
-assemble a deduplicated markdown block for copy/paste.
+**Current phase**: a CLI tool with two modes:
+- **static**: auto-discovered actions that call retrievers (LSP + BM25 vector),
+  enrich results with inheritance context via LSP, and assemble a deduplicated
+  markdown block for copy/paste into any LLM.
+- **agentic**: a conversational agent loop that calls DeepSeek (via OpenAI
+  library) with auto-discovered tools. The LLM can invoke tools (e.g. glob)
+  to explore the codebase, with proper thinking-mode thread management
+  (reasoning_content passthrough during tool-call turns).
 
-**What is NOT built yet**: the tooling server for agentic LLMs (phase 2),
-dense embeddings.
+**What is NOT built yet**: dense embeddings, more tools beyond glob.
 
 ## Startup
 
@@ -31,10 +35,16 @@ smolRAG/
 │   ├── __init__.py              # Re-exports main(), CodeSnippet, ContextBuilder
 │   ├── __main__.py              # python -m smolrag entry point
 │   ├── cli.py                   # CLI: --project, action dispatch, prompt_toolkit interactive menus
+│   ├── agent.py                 # Agentic loop: stdin, DeepSeek + tools, thinking mode passthrough
 │   ├── types.py                 # CodeSnippet dataclass (unified retrieval result)
 │   ├── config.py                # DeepSeek API config: loads ~/.config/smolrag/.env via python-dotenv
 │   ├── context_builder.py       # ContextBuilder: flatten, token-limited format for LLMs
 │   ├── dedup.py                 # dedup(): merges overlapping CodeSnippet ranges
+│   ├── tools/                   # Agent tools (auto-discovered by __init__.py)
+│   │   ├── __init__.py          # Auto-scans for Tool subclasses
+│   │   ├── tool.py              # Abstract Tool base class (name, description, parameters, execute)
+│   │   ├── glob_tool.py         # GlobTool: pattern-based file search within project
+│   │   └── read_tool.py         # ReadTool: read file contents with optional line range
 │   ├── actions/                 # Action plugins (auto-discovered by __init__.py)
 │   │   ├── __init__.py          # Auto-scans for Action subclasses
 │   │   ├── action.py            # Abstract Action base class
@@ -104,6 +114,9 @@ uv run python -c "from smolrag import main, CodeSnippet, ContextBuilder"
 # Verify actions are discovered
 uv run python -c "from smolrag.actions import list_actions; print(list_actions())"
 
+# Verify tools are discovered
+uv run python -c "from smolrag.tools import list_tools; print(list_tools())"
+
 # Run all non-LSP tests (fast, no Java needed)
 uv run pytest tests/ -v -m "not lsp"
 
@@ -170,13 +183,78 @@ An action's `run()` method orchestrates the pipeline:
 All actions end with building a contextual query and passing it to
 ``ContextBuilder.build()`` for formatting.
 
+### Tool system
+
+Tools live in `src/smolrag/tools/` as separate files. Each file contains
+one class that extends ``Tool`` (from ``tool.py``). The ``tools/__init__.py``
+auto-discovers them on import --- drop a new ``*_tool.py`` file with a ``Tool``
+subclass and it is registered. No manual registration needed.
+
+Available tools:
+
+| Name | File | Description |
+|------|------|-------------|
+| `glob` | `glob_tool.py` | Pattern-based file search within the project directory (recursive, returns sorted paths) |
+| `read` | `read_tool.py` | Read file contents with optional start/end line range (0-based, inclusive) |
+
+A tool must define three class attributes and one method:
+
+``name`` --- unique identifier, used in the OpenAI function call schema
+``description`` --- natural language description for the LLM to know when to call it
+``parameters`` --- a JSON Schema (draft-7) ``object`` describing the tool's arguments
+``execute(**kwargs) -> str`` --- executes the tool and returns a plain string (result or error message)
+
+Tools receive ``project_root`` in their constructor (same pattern as
+``Action``). Errors are caught by the agent loop and returned as error
+strings so the LLM can react to them.
+
+The JSON schema for ``parameters`` must follow the OpenAI function-calling
+format. The top-level ``type`` must be ``"object"``, with ``properties``
+describing each argument and an optional ``required`` array:
+
+```python
+parameters = {
+    "type": "object",
+    "properties": {
+        "pattern": {"type": "string", "description": "Glob pattern to match"},
+    },
+    "required": ["pattern"],
+}
+```
+
+### Agent workflow
+
+``agent.py`` implements a conversational loop that calls DeepSeek
+through the OpenAI library:
+
+1. On startup, all registered ``Tool`` subclasses are instantiated and their
+   OpenAI function-call schemas are built.
+2. The agent reads a user query from ``stdin``.
+3. The query is sent to DeepSeek along with the tool definitions.
+4. If the model returns ``tool_calls``, each call is dispatched to the
+   matching tool. The tool's return string is sent back as a ``tool`` role
+   message. The loop repeats until the model stops requesting tools.
+5. When no tool calls remain, the model's ``content`` is printed and the
+   agent waits for the next user query.
+
+**Thinking mode passthrough**: When DeepSeek's thinking mode is enabled
+(``DEEPSEEK_THINKING=1``), the API returns ``reasoning_content`` alongside
+``content``. For turns involving tool calls, ``reasoning_content`` must be
+passed back to the API in all subsequent requests (the OpenAI library
+includes it when appending ``response.choices[0].message`` directly).
+For turns without tool calls, ``reasoning_content`` is omitted in subsequent
+turns (the API ignores it anyway). The agent prints a truncated reasoning
+trace before the final answer.
+
+### Retrievers
+
 ### CLI
 
 The CLI entry point (``cli.py``) uses ``prompt_toolkit`` for interactive
 menus. On startup, it presents a mode selection:
 
 - **static**: prepare a prompt to copy/paste into an LLM chat (current focus)
-- **agentic**: connect to an agentic LLM (not yet implemented)
+- **agentic**: connect to an agentic LLM (calls DeepSeek with tools, standard input loop)
 - **config**: configuration options (not yet implemented)
 
 When running in ``static`` mode, the action can be passed as a positional

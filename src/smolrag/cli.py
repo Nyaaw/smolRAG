@@ -28,7 +28,7 @@ def main() -> None:
 
         mode_choice = choice("What would you like to do ?", options=[
             ("static", "static: prepare a prompt to copy/paste in your favorite LLM chat"),
-            ("agent", "agentic: connect to an agentic LLM and let it decide what to do on your codebase")
+            ("agent", "agentic: connect to an agentic LLM and let it decide what to do on your codebase"),
             ("config", "configuration options")
         ])
         print()
@@ -37,7 +37,9 @@ def main() -> None:
         if(mode_choice == "config"):
             exit()
         elif(mode_choice == "agent"):
-            exit()
+            from smolrag.agent import run_agent
+            run_agent(args.project)
+            return
         elif(mode_choice == "static"):
             
             actions = list_actions()
