@@ -20,3 +20,13 @@ class CodeSnippet:
         if self.parent is not None:
             base += f" of {self.parent}"
         return base
+
+    def to_tool_output(self, include_code: bool = False) -> str:
+        """Compact representation for LLM tool responses.
+
+        :param include_code: If True, append the source code after the header line.
+        """
+        result = f"{self.path}@{self.start_line}:{self.end_line} | {self.source}"
+        if include_code:
+            result += "\n" + self.code
+        return result

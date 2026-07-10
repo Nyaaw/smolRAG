@@ -1,5 +1,10 @@
+from __future__ import annotations
+
 from abc import ABC, abstractmethod
-from pathlib import Path
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from smolrag.lsp.lspclient import LspClient
 
 
 class Tool(ABC):
@@ -22,3 +27,14 @@ class Tool(ABC):
     @abstractmethod
     def execute(self, **kwargs: object) -> str:
         ...
+
+
+class LspTool(Tool, ABC):
+    """Abstract base for tools that need an LSP client.
+
+    Subclasses receive the shared LSP client via constructor injection.
+    """
+
+    def __init__(self, project_root: str, lsp_client: LspClient) -> None:
+        super().__init__(project_root)
+        self._lsp_client = lsp_client
