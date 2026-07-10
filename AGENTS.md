@@ -43,8 +43,8 @@ smolRAG/
 │   ├── tools/                   # Agent tools (auto-discovered by __init__.py)
 │   │   ├── __init__.py          # Auto-scans for Tool subclasses
 │   │   ├── tool.py              # Abstract Tool and LspTool base classes
-│   │   ├── glob_tool.py         # GlobTool: pattern-based file search within project
-│   │   ├── read_tool.py         # ReadTool: read file contents with optional line range
+│   │   ├── glob.py             # GlobTool: pattern-based file search within project
+│   │   ├── read.py             # ReadTool: read file contents with optional line range
 │   │   ├── lsp_document_symbols.py  # LspDocumentSymbolsTool: LSP document symbols in a file
 │   │   ├── lsp_workspace_symbols.py # LspWorkspaceSymbolsTool: LSP workspace symbol search
 │   │   ├── lsp_definition.py    # LspDefinitionTool: LSP go-to-definition
@@ -339,8 +339,8 @@ Available tools:
 
 | Name | File | Description |
 |------|------|-------------|
-| `glob` | `glob_tool.py` | Pattern-based file search within the project directory |
-| `read` | `read_tool.py` | Read file contents with optional start/end line range (0-based, inclusive) |
+| `glob` | `glob.py` | Pattern-based file search within the project directory |
+| `read` | `read.py` | Read file contents with optional start/end line range (0-based, inclusive) |
 | `lsp/document_symbols` | `lsp_document_symbols.py` | LSP document symbols in a file (optional inline code via ``include_code``) |
 | `lsp/workspace_symbols` | `lsp_workspace_symbols.py` | LSP workspace symbol search (optional inline code via ``include_code``) |
 | `lsp/definition` | `lsp_definition.py` | LSP go-to-definition (optional inline code via ``include_code``) |
