@@ -9,14 +9,14 @@ from tests.helpers import _cs
 def test_heading_no_parent():
     """Heading for a root snippet is just its string representation."""
     s = _cs("foo", "A.java", 0, 5, "LSP search 'query'")
-    assert ContextBuilder._heading(s) == "A.java@0:5, source: LSP search 'query'"
+    assert str(s) == "A.java@0:5, source: LSP search 'query'"
 
 
 def test_heading_with_parent():
     """Heading for an enrichment child includes a reference to the parent."""
     parent = _cs("base", "A.java", 0, 5, "LSP search 'query'")
     child = _cs("derived", "B.java", 10, 15, "superclass or interface", parent=parent)
-    assert ContextBuilder._heading(child) == "B.java@10:15, source: superclass or interface of A.java@0:5, source: LSP search 'query'"
+    assert str(child) == "B.java@10:15, source: superclass or interface of A.java@0:5, source: LSP search 'query'"
 
 
 def test_build_empty_snippets():

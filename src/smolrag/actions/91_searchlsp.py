@@ -19,7 +19,7 @@ class SearchLspAction(Action):
                 print("No query provided.")
                 return
 
-            snippets = client.find_symbols(query)
+            snippets = client.workspace_symbols_code(query)
 
         if not snippets:
             print(f"No results for '{query}'.")

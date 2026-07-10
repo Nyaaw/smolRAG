@@ -32,12 +32,24 @@ class RefactorCostAction(Action):
                 print("No refactor action provided.")
                 return
 
-            lsp_results = client.find_symbols(target)
+            lsp_results = client.workspace_symbols_code(target)
 
             raw = lsp_results + retriever.search(target)
             raw = enricher.enrich_parent(raw)
 
-            ref_snippets = self._find_references(client, lsp_results, target)
+            ref_snippets: list[CodeSnippet] = []
+            for s in lsp_results:
+                #HACK: s.start_line, 0 can land on a comment.
+                # this seems to work because the LS resolves to nearest identifier
+                refs = client.references_code(s.path, s.start_line, 0)
+
+                for ref in refs:
+                    ref.source = "reference"
+                    ref.parent = s
+                    ref.retrieval_depth = s.retrieval_depth + 1
+
+                ref_snippets.extend(refs)
+
             all_snippets = dedup(raw + ref_snippets)
 
         if not all_snippets:
@@ -51,61 +63,3 @@ class RefactorCostAction(Action):
             f"Refactor action: {refactor}\nTarget symbol: {target}"
         )
         print(ContextBuilder.build(context_query, all_snippets))
-
-    @staticmethod
-    def _find_references(
-        client: JavaLSPClient,
-        lsp_snippets: list[CodeSnippet],
-        target: str,
-    ) -> list[CodeSnippet]:
-        """Find all references to every code snippet in *lsp_snippets*.
-
-        For each snippet returned by
-        :meth:`~smolrag.lsp.JavaLSPClient.find_symbols`, this calls the
-        LSP ``textDocument/references`` request (using the snippet's
-        start position) and wraps every reference location into a
-        :class:`CodeSnippet`.
-        """
-        all_snippets: list[CodeSnippet] = []
-
-        for s in lsp_snippets:
-            # ask the LSP for every reference to this symbol
-            # across the entire workspace.
-            refs = client.references(s.path, s.start_line, 0)
-
-            # convert each reference Location into a CodeSnippet,
-            # then deduplicate the batch (same-file overlapping references
-            # from the same symbol are merged).
-            batch: list[CodeSnippet] = []
-            for ref in refs:
-                ref_uri = ref.get("uri", "")
-                ref_abs = client._uri_to_abs_path(ref_uri)
-                if ref_abs is None:
-                    continue
-                ref_rel = client._abs_to_rel_path(ref_abs)
-
-                rng = ref["range"]
-                start_line = rng["start"]["line"]
-                end_line = rng["end"]["line"]
-
-                code = client._read_code_range(ref_abs, start_line, end_line)
-                if code is None:
-                    continue
-
-                batch.append(
-                    CodeSnippet(
-                        code=code,
-                        path=ref_rel,
-                        start_line=start_line,
-                        end_line=end_line,
-                        source=f"reference of '{target}'",
-                        parent=s,
-                        retrieval_depth=s.retrieval_depth + 1,
-                    )
-                )
-
-            all_snippets.extend(batch)
-
-        # deduplicate across symbols (a reference may appear for
-        # multiple symbols of the same name in the same file).
-        return dedup(all_snippets)

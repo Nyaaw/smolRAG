@@ -45,7 +45,7 @@ class JavaEnricher(LanguageEnricher):
             enriched.append(s)
             parent_names = self._extract_extends_implements(s)
             for name in parent_names:
-                parent_snippets = self._lspclient.find_symbols(name)
+                parent_snippets = self._lspclient.workspace_symbols_code(name)
                 if parent_snippets:
                     for ps in parent_snippets:
                         ps.source = "superclass or interface"
@@ -94,7 +94,7 @@ class JavaEnricher(LanguageEnricher):
         Returns a CodeSnippet for that class, or None if not found."""
         abs_path = os.path.join(self._project_root, snippet.path) #TODO: only use pathlib
         try:
-            doc_syms, _ = self._lspclient.document_symbols(snippet.path)
+            doc_syms, _ = self._lspclient._lsp.request_document_symbols(snippet.path)
         except Exception:
             return None
 

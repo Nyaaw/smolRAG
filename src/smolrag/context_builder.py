@@ -80,20 +80,10 @@ class ContextBuilder:
             "",
         ]
         for s in kept:
-            parts.append(f"### {ContextBuilder._heading(s)}")
+            parts.append(f"### {s}")
             parts.append("")
             parts.append("```java")
             parts.append(s.code)
             parts.append("```")
             parts.append("")
         return "\n".join(parts)
-
-    #TODO: move logic to codesnippet.py (__str__())
-    @staticmethod
-    def _heading(snippet: CodeSnippet) -> str:
-        """Build a heading for *snippet* that includes its source and,
-        for enrichment children, a reference to the parent snippet."""
-        base = str(snippet)
-        if snippet.parent is not None:
-            base += f" of {snippet.parent}"
-        return base

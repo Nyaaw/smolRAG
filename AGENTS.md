@@ -36,7 +36,7 @@ smolRAG/
 │   ├── __main__.py              # python -m smolrag entry point
 │   ├── cli.py                   # CLI: --project, action dispatch, prompt_toolkit interactive menus
 │   ├── agent.py                 # Agentic loop: stdin, DeepSeek + tools, thinking mode passthrough
-│   ├── types.py                 # CodeSnippet dataclass (unified retrieval result)
+│   ├── codesnippet.py           # CodeSnippet dataclass (unified retrieval result)
 │   ├── config.py                # DeepSeek API config: loads ~/.config/smolrag/.env via python-dotenv
 │   ├── context_builder.py       # ContextBuilder: flatten, token-limited format for LLMs
 │   ├── dedup.py                 # dedup(): merges overlapping CodeSnippet ranges
@@ -57,7 +57,7 @@ smolRAG/
 │   ├── lsp/                     # LSP integration sub-package
 │   │   ├── __init__.py          # Exports LspClient, JavaLSPClient, LanguageEnricher, JavaEnricher
 │   │   ├── lspclient.py         # Abstract LspClient (ABC wrapping multilspy)
-│   │   ├── javalspclient.py     # JavaLSPClient: Eclipse JDTLS, find_symbols()
+│   │   ├── javalspclient.py     # JavaLSPClient: 4 CodeSnippet-returning LSP methods + hover/completions
 │   │   └── enrich/              # Language-specific enrichers
 │   │       ├── __init__.py      # Exports LanguageEnricher, JavaEnricher
 │   │       ├── enrich.py        # LanguageEnricher ABC: single abstract enrich()
@@ -72,7 +72,7 @@ smolRAG/
 │   ├── helpers.py               # Shared test helpers (_cs, _code)
 │   ├── test_dedup.py            # Tests for dedup() overlap merging + source/parent fixup
 │   ├── test_flatten.py          # Tests for flatten() DFS ordering
-│   ├── test_types.py            # Tests for CodeSnippet.__str__
+│   ├── test_codesnippet.py      # Tests for CodeSnippet.__str__
 │   ├── test_context_builder.py  # Stub
 │   ├── e2e/                             # LLM end-to-end tests (calls DeepSeek API, costs money)
 │   │   ├── __init__.py
@@ -176,7 +176,7 @@ Available actions:
 An action's `run()` method orchestrates the pipeline:
 
 - **explain**: collect symbol name → LSP + BM25 → dedup → enrich → dedup → build context
-- **refactor-cost**: collect target + refactor description → LSP + BM25 → enrich → gather references → single dedup → build context
+- **refactor-cost**: collect target + refactor description → LSP + BM25 → enrich → gather references via ``references_code`` → dedup → build context
 - **debug-stacktrace**: paste stacktrace → parse frames (class, file, line) → LSP + BM25 per unique class name → dedup → build context (stacktrace embedded in query)
 - **debug-searchvector / search-lsp**: single-retriever, no enrichment
 
@@ -283,14 +283,20 @@ wait is implemented by ``_hook_notification_handler()``, which patches the
 server's ``on_notification`` to intercept ``language/status`` and set a
 ``threading.Event`` on ``ProjectStatus``.
 
-`JavaLSPClient` specializes ``LspClient`` for Eclipse JDTLS. The key
-high-level method is `find_symbols(query: str) -> list[CodeSnippet]`:
+`JavaLSPClient` specializes ``LspClient`` for Eclipse JDTLS.  Four methods
+return ``list[CodeSnippet]`` with source code; ``hover`` and ``completions``
+forward the raw LSP response:
 
-1. `workspace_symbols(query)` — finds matching symbols across the project (camel-case/prefix matching only)
-2. `document_symbols(rel_path)` — gets full ranges (comments + body) on each
-   matching file
-3. Reads lines from disk via ``_read_code_range`` and wraps them into
-   ``CodeSnippet`` objects
+- ``document_symbols_code(rel_path)`` — all symbols in a file as CodeSnippets
+  with code (source: ``"LSP document symbol"``)
+- ``workspace_symbols_code(query)`` — search workspaces for symbols matching
+  *query*, uses ``document_symbols_code`` internally to get full ranges via
+  location containment, and returns CodeSnippets with code (source:
+  ``"LSP workspace search '{query}'"``)
+- ``definition_code(rel_path, line, col)`` — definition of the symbol at the
+  given position as a CodeSnippet with code (source: ``"LSP definition"``)
+- ``references_code(rel_path, line, col)`` — all references to the symbol at
+  the given position as CodeSnippets with code (source: ``"LSP reference"``)
 
 **Known LSP quirks**:
 - JDTLS `workspace/symbol` does camel-case prefix matching (e.g. `"OutputRed"`
@@ -327,8 +333,8 @@ inheritance context:
 
 - Extracts `extends`/`implements` from class declarations via regex
 - For methods/fields not in a class declaration, finds the containing class via
-  range containment in `document_symbols`
-- Calls `find_symbols()` on each parent/interface name to retrieve their code
+  range containment in ``document_symbols_code``
+- Calls ``workspace_symbols_code()`` on each parent/interface name to retrieve their code
 - Prepends parent code before the matched snippet
 
 To add a new language, drop a `*enricher.py` file in `lsp/enrich/` with a class
@@ -336,7 +342,7 @@ that extends `LanguageEnricher` and implements `enrich()`.
 
 ### CodeSnippet (unified result type)
 
-Defined in `src/smolrag/types.py`. All retrievers return `list[CodeSnippet]`.
+Defined in `src/smolrag/codesnippet.py`. All retrievers return `list[CodeSnippet]`.
 
 ```python
 @dataclass
@@ -350,17 +356,21 @@ class CodeSnippet:
     retrieval_depth: int = 0  # Distance from a direct retrieval root (0 for roots, +1 per enrichment level)
 
     def __str__(self) -> str:
-        return f"{self.path}@{self.start_line}:{self.end_line}, {self.source}"
+        base = f"{self.path}@{self.start_line}:{self.end_line}, source: {self.source}"
+        if self.parent is not None:
+            base += f" of {self.parent}"
+        return base
 ```
 
 Each retrievers set the ``source`` field to identify the snippet's origin:
 
-- **LSP**: ``"LSP workspace search '{query}'"``
+- **LSP**: ``"LSP workspace search '{query}'"``, ``"LSP document symbol"``,
+  ``"LSP definition"``, ``"LSP reference"``
 - **BM25 / vector**: ``"BM25 search '{query}'"``
 - **Chunker**: ``"file chunk"``
-- **JavaEnricher (parent)**: ``"superclass"``
+- **JavaEnricher (parent)**: ``"superclass or interface"``
 - **JavaEnricher (containing class)**: ``"containing class"``
-- **RefactorCostAction (reference)**: ``"reference of '{target}'"``
+- **RefactorCostAction (reference)**: ``"reference"`` (parent info via ``__str__``)
 
 The ``parent`` field forms a rootless tree of results. Top-level snippets
 (from LSP/BM25 retrievers) have ``parent = None``. Enrichment snippets have
@@ -419,9 +429,9 @@ The output consists of:
 3. ``## Retrieved code snippets:``
 4. For each snippet (in DFS order from :func:`_flatten`): ``### {heading}``
    followed by a `` ```java `` code fence and the snippet's code.
-   The heading includes the snippet's own source and, for enrichment
-   children, a reference to the parent snippet (e.g. ``"superclass
-   of Cat.java@0:25, source: LSP workspace search 'Cat'"``).
+   The heading is ``str(snippet)``, which includes the snippet's source
+   and, for children, a reference to the parent (e.g. ``"superclass
+   or interface of Cat.java@0:25, source: LSP workspace search 'Cat'"``).
 
 ### Logging
 

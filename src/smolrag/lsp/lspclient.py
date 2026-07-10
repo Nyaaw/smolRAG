@@ -13,6 +13,8 @@ from multilspy import SyncLanguageServer
 from multilspy.multilspy_config import MultilspyConfig, Language
 from multilspy.multilspy_logger import MultilspyLogger
 
+from smolrag.codesnippet import CodeSnippet
+
 
 class _CleanHandler(logging.Handler):
     def emit(self, record: logging.LogRecord) -> None:
@@ -41,7 +43,9 @@ class LspClient(ABC):
     """Abstract base for language-specific LSP clients wrapping multilspy.
 
     Subclasses must define :attr:`_language` and implement all 7 LSP
-    request methods, which can contain per-language response parsing.
+    request methods.  Four methods return :class:`CodeSnippet` lists
+    with source code; ``hover`` and ``completions`` forward the raw
+    LSP response.
     """
 
     @property
@@ -130,7 +134,7 @@ class LspClient(ABC):
 
         Usage:
             with client.start():
-                symbols = client.document_symbols("path/to/File.java")
+                snippets = client.document_symbols_code("path/to/File.java")
         """
         self._project_ready.clear()
         print("Initializing Language Server...")
@@ -143,38 +147,49 @@ class LspClient(ABC):
             yield self
 
     @abstractmethod
-    def document_symbols(self, relative_path: str) -> Any:
-        """Get all symbols (classes, methods, fields) in a file.
+    def document_symbols_code(self, relative_path: str) -> list[CodeSnippet]:
+        """Get all symbols in a file as CodeSnippets with their source code.
 
         :param relative_path: Path relative to project root
+        :returns: CodeSnippets with full source code for each symbol
         """
         ...
 
     @abstractmethod
-    def workspace_symbols(self, query: str) -> Any:
-        """Search for symbols across the entire workspace.
+    def workspace_symbols_code(self, query: str) -> list[CodeSnippet]:
+        """Search for symbols across the workspace and return them as
+        CodeSnippets with full source code.
 
         :param query: Symbol name to search for
+        :returns: CodeSnippets with full source code for matching symbols
         """
         ...
 
     @abstractmethod
-    def definition(self, relative_path: str, line: int, column: int) -> Any:
-        """Find where the symbol at the given position is defined.
+    def definition_code(
+        self, relative_path: str, line: int, column: int
+    ) -> list[CodeSnippet]:
+        """Find where the symbol at the given position is defined and
+        return the definition as a CodeSnippet with source code.
 
         :param relative_path: Path relative to project root
         :param line: 0-based line number
         :param column: 0-based column number
+        :returns: CodeSnippets with full source code for the definition
         """
         ...
 
     @abstractmethod
-    def references(self, relative_path: str, line: int, column: int) -> Any:
-        """Find all references to the symbol at the given position.
+    def references_code(
+        self, relative_path: str, line: int, column: int
+    ) -> list[CodeSnippet]:
+        """Find all references to the symbol at the given position and
+        return them as CodeSnippets with source code.
 
         :param relative_path: Path relative to project root
         :param line: 0-based line number
         :param column: 0-based column number
+        :returns: CodeSnippets with full source code for each reference
         """
         ...
 

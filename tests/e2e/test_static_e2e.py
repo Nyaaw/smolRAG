@@ -72,6 +72,7 @@ def _print_response(capsys, label: str, context: str, reasoning: str | None, ans
 # E2E tests (one per action)
 # ---------------------------------------------------------------------------
 
+#TODO: formalize prompt injection and "no information in snippets" cases
 
 def test_e2e_index(fixture_project, capsys):
     """Build the BM25 index. No LLM call -- just verify it doesn't crash."""

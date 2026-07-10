@@ -49,7 +49,7 @@ class DebugStacktraceAction(Action):
 
             raw: list = []
             for name in seen:
-                raw.extend(client.find_symbols(name))
+                raw.extend(client.workspace_symbols_code(name))
                 raw.extend(retriever.search(name))
 
             snippets = dedup(raw)

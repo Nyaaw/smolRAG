@@ -16,4 +16,7 @@ class CodeSnippet:
     retrieval_depth: int = 0
 
     def __str__(self) -> str:
-        return f"{self.path}@{self.start_line}:{self.end_line}, source: {self.source}"
+        base = f"{self.path}@{self.start_line}:{self.end_line}, source: {self.source}"
+        if self.parent is not None:
+            base += f" of {self.parent}"
+        return base

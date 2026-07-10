@@ -18,7 +18,7 @@ def test_enrich_class_with_single_parent(fixture_project, require_lsp):
     """Enriching Mammal (extends Animal) prepends Animal as an enrichment child."""
     client = JavaLSPClient(fixture_project)
     with client.start():
-        mammal_snippets = client.find_symbols("Mammal")
+        mammal_snippets = client.workspace_symbols_code("Mammal")
     mammal = [s for s in mammal_snippets if s.path.endswith("Mammal.java")][0]
 
     result = _enrich_one(fixture_project, mammal)
@@ -37,7 +37,7 @@ def test_enrich_class_with_extends_and_implements(fixture_project, require_lsp):
     """Enriching Cat (extends Mammal implements Pet) prepends both parents."""
     client = JavaLSPClient(fixture_project)
     with client.start():
-        cat_snippets = client.find_symbols("Cat")
+        cat_snippets = client.workspace_symbols_code("Cat")
     assert len(cat_snippets) == 1
     cat = cat_snippets[0]
 
@@ -59,7 +59,7 @@ def test_enrich_class_with_no_inheritance(fixture_project, require_lsp):
     """Enriching Animal (root class, no extends) produces no enrichment children."""
     client = JavaLSPClient(fixture_project)
     with client.start():
-        animal_snippets = client.find_symbols("Animal")
+        animal_snippets = client.workspace_symbols_code("Animal")
     animal = [s for s in animal_snippets if s.path.endswith("Animal.java")][0]
 
     result = _enrich_one(fixture_project, animal)
@@ -70,7 +70,7 @@ def test_enrich_interface_no_super(fixture_project, require_lsp):
     """Enriching Pet (interface with no super-interfaces) produces no enrichment."""
     client = JavaLSPClient(fixture_project)
     with client.start():
-        pet_snippets = client.find_symbols("Pet")
+        pet_snippets = client.workspace_symbols_code("Pet")
     assert len(pet_snippets) == 1
     pet = pet_snippets[0]
 
@@ -83,7 +83,7 @@ def test_enrich_standalone_class(fixture_project, require_lsp):
     """Enriching Owner (class with no extends/implements) produces no enrichment."""
     client = JavaLSPClient(fixture_project)
     with client.start():
-        owner_snippets = client.find_symbols("Owner")
+        owner_snippets = client.workspace_symbols_code("Owner")
     assert len(owner_snippets) == 1
     owner = owner_snippets[0]
 
@@ -139,7 +139,7 @@ def test_enrich_parent_references_correct(fixture_project, require_lsp):
     """Enriched children have source='superclass or interface' and parent pointing to the original."""
     client = JavaLSPClient(fixture_project)
     with client.start():
-        cat_snippets = client.find_symbols("Cat")
+        cat_snippets = client.workspace_symbols_code("Cat")
     cat = cat_snippets[0]
 
     result = _enrich_one(fixture_project, cat)

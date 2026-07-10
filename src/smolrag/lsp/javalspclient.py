@@ -1,4 +1,5 @@
 import os
+from typing import Any
 
 from multilspy.multilspy_config import Language
 
@@ -13,69 +14,142 @@ class JavaLSPClient(LspClient):
     def _language(self) -> Language:
         return Language.JAVA
 
-    def document_symbols(self, relative_path: str):
-        return self._lsp.request_document_symbols(relative_path)
-
-    def workspace_symbols(self, query: str):
-        return self._lsp.request_workspace_symbol(query)
-
-    def definition(self, relative_path: str, line: int, column: int):
-        return self._lsp.request_definition(relative_path, line, column)
-
-    def references(self, relative_path: str, line: int, column: int):
-        return self._lsp.request_references(relative_path, line, column)
-
-    def hover(self, relative_path: str, line: int, column: int):
-        return self._lsp.request_hover(relative_path, line, column)
-
-    def completions(self, relative_path: str, line: int, column: int):
-        return self._lsp.request_completions(relative_path, line, column)
-
-    def find_symbols(self, query: str) -> list[CodeSnippet]:
-        """Search for a symbol across the workspace and return its full code block.
-
-        Uses ``workspace_symbols`` to locate matches, then ``document_symbols``
-        on each matching file to obtain the complete range (comments + body).
-        """
-        matches = self._lsp.request_workspace_symbol(query)
-        if not matches:
+    def document_symbols_code(self, relative_path: str) -> list[CodeSnippet]:
+        results, _ = self._lsp.request_document_symbols(relative_path)
+        if not results:
             return []
 
-        # Group workspace matches by file (relative path)
+        abs_path = os.path.join(self._project_root, relative_path)
+        snippets: list[CodeSnippet] = []
+        for r in results:
+            rng = r.get("range", {})
+            start_line = rng.get("start", {}).get("line", 0)
+            end_line = rng.get("end", {}).get("line", 0)
+            code = self._read_code_range(abs_path, start_line, end_line)
+            if code is None:
+                continue
+            snippets.append(
+                CodeSnippet(
+                    code=code,
+                    path=relative_path,
+                    start_line=start_line,
+                    end_line=end_line,
+                    source="LSP document symbol",
+                )
+            )
+        return snippets
+
+    def workspace_symbols_code(self, query: str) -> list[CodeSnippet]:
+        results = self._lsp.request_workspace_symbol(query)
+        if not results:
+            return []
+
         by_file: dict[str, list[dict]] = {}
-        for m in matches:
-            loc = m.get("location", {})
-            uri = loc.get("uri", "")
+        for r in results:
+            uri = r.get("location", {}).get("uri", "")
             abs_path = self._uri_to_abs_path(uri)
             if abs_path is None:
                 continue
             rel_path = self._abs_to_rel_path(abs_path)
-            by_file.setdefault(rel_path, []).append(m)
+            by_file.setdefault(rel_path, []).append(r)
 
         snippets: list[CodeSnippet] = []
-        for rel_path, ws_symbols in by_file.items():
-            doc_syms, _ = self._lsp.request_document_symbols(rel_path)
-            doc_by_name: dict[str, dict] = {s["name"]: s for s in doc_syms}
+        for rel_path, ws_results in by_file.items():
+            doc_snippets = self.document_symbols_code(rel_path)
 
-            abs_path = os.path.join(self._project_root, rel_path) #TODO: only use pathlib
-            for ws in ws_symbols:
-                doc = doc_by_name.get(ws["name"])
-                if doc is None:
-                    continue
-                rng = doc["range"]
-                start_line = rng["start"]["line"]
-                end_line = rng["end"]["line"]
-                code = self._read_code_range(abs_path, start_line, end_line)
-                if code is None:
-                    continue
-                snippets.append(
-                    CodeSnippet(
-                        code=code,
-                        path=rel_path,
-                        start_line=start_line,
-                        end_line=end_line,
-                        source=f"LSP workspace search '{query}'",
-                    )
+            for r in ws_results:
+                r_line = (
+                    r.get("location", {})
+                    .get("range", {})
+                    .get("start", {})
+                    .get("line", 0)
                 )
 
+                best: CodeSnippet | None = None
+                best_size: int = 0
+                for ds in doc_snippets:
+                    if ds.start_line <= r_line <= ds.end_line:
+                        size = ds.end_line - ds.start_line
+                        if best is None or size < best_size:
+                            best = ds
+                            best_size = size
+
+                if best is not None:
+                    best.source = f"LSP workspace search '{query}'"
+                    snippets.append(best)
+
         return snippets
+
+    def definition_code(
+        self, relative_path: str, line: int, column: int
+    ) -> list[CodeSnippet]:
+        results = self._lsp.request_definition(relative_path, line, column)
+        if not results:
+            return []
+
+        snippets: list[CodeSnippet] = []
+        for r in results:
+            uri = r.get("uri", "")
+            abs_path = self._uri_to_abs_path(uri)
+            if abs_path is None:
+                continue
+
+            rng = r.get("range", {})
+            start_line = rng.get("start", {}).get("line", 0)
+            end_line = rng.get("end", {}).get("line", 0)
+
+            code = self._read_code_range(abs_path, start_line, end_line)
+            if code is None:
+                continue
+
+            snippets.append(
+                CodeSnippet(
+                    code=code,
+                    path=self._abs_to_rel_path(abs_path),
+                    start_line=start_line,
+                    end_line=end_line,
+                    source="LSP definition",
+                )
+            )
+
+        return snippets
+
+    def references_code(
+        self, relative_path: str, line: int, column: int
+    ) -> list[CodeSnippet]:
+        results = self._lsp.request_references(relative_path, line, column)
+        if not results:
+            return []
+
+        snippets: list[CodeSnippet] = []
+        for r in results:
+            uri = r.get("uri", "")
+            abs_path = self._uri_to_abs_path(uri)
+            if abs_path is None:
+                continue
+
+            rng = r.get("range", {})
+            start_line = rng.get("start", {}).get("line", 0)
+            end_line = rng.get("end", {}).get("line", 0)
+
+            code = self._read_code_range(abs_path, start_line, end_line)
+            if code is None:
+                continue
+
+            snippets.append(
+                CodeSnippet(
+                    code=code,
+                    path=self._abs_to_rel_path(abs_path),
+                    start_line=start_line,
+                    end_line=end_line,
+                    source="LSP reference",
+                )
+            )
+
+        return snippets
+
+    def hover(self, relative_path: str, line: int, column: int) -> Any:
+        return self._lsp.request_hover(relative_path, line, column)
+
+    def completions(self, relative_path: str, line: int, column: int) -> Any:
+        return self._lsp.request_completions(relative_path, line, column)
