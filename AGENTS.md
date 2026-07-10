@@ -20,7 +20,7 @@ with very large codebases.*
   to explore the codebase, with proper thinking-mode thread management
   (reasoning_content passthrough during tool-call turns).
 
-**What is NOT built yet**: dense embeddings, more tools beyond glob.
+**What is NOT built yet**: dense embeddings.
 
 ## Startup
 
@@ -42,9 +42,13 @@ smolRAG/
 │   ├── dedup.py                 # dedup(): merges overlapping CodeSnippet ranges
 │   ├── tools/                   # Agent tools (auto-discovered by __init__.py)
 │   │   ├── __init__.py          # Auto-scans for Tool subclasses
-│   │   ├── tool.py              # Abstract Tool base class
+│   │   ├── tool.py              # Abstract Tool and LspTool base classes
 │   │   ├── glob_tool.py         # GlobTool: pattern-based file search within project
-│   │   └── read_tool.py         # ReadTool: read file contents with optional line range
+│   │   ├── read_tool.py         # ReadTool: read file contents with optional line range
+│   │   ├── lsp_document_symbols.py  # LspDocumentSymbolsTool: LSP document symbols in a file
+│   │   ├── lsp_workspace_symbols.py # LspWorkspaceSymbolsTool: LSP workspace symbol search
+│   │   ├── lsp_definition.py    # LspDefinitionTool: LSP go-to-definition
+│   │   └── lsp_references.py    # LspReferencesTool: LSP find-all-references
 │   ├── actions/                 # Action plugins (auto-discovered by __init__.py)
 │   │   ├── __init__.py          # Auto-scans for Action subclasses
 │   │   ├── action.py            # Abstract Action base class
@@ -251,7 +255,15 @@ class CodeSnippet:
         if self.parent is not None:
             base += f" of {self.parent}"
         return base
+
+    def to_tool_output(self, include_code: bool = False) -> str:
+        ...
 ```
+
+``__str__`` is used by ``ContextBuilder`` for snippet headings. ``to_tool_output()``
+is a compact representation for LLM tool responses: a single header line
+(``path@start:end | source``) with optional code appended below when
+``include_code=True``. Default is ``False`` to keep responses small.
 
 Source strings:
 
@@ -299,12 +311,16 @@ The multilspy logger is configured at `lspclient.py` module level:
 ``agent.py`` implements a conversational loop that calls DeepSeek through
 the OpenAI library:
 
-1. On startup, all registered ``Tool`` subclasses are instantiated with their
-   OpenAI function-call schemas.
-2. Reads a user query from ``stdin``, sends it to DeepSeek with tool definitions.
-3. Dispatches ``tool_calls`` to matching tools, returns results back to the
+1. Creates a ``JavaLSPClient`` and enters ``client.start()`` (context manager),
+   launching Eclipse JDTLS once for the session lifetime.
+2. All registered ``Tool`` subclasses are instantiated. ``LspTool`` subclasses
+   receive the shared LSP client via constructor injection; plain ``Tool``
+   subclasses receive only ``project_root``.
+3. Reads a user query from ``stdin``, sends it to DeepSeek with tool definitions.
+4. Dispatches ``tool_calls`` to matching tools, returns results back to the
    model, repeats until no more tool calls.
-4. Prints the model's final ``content`` and waits for the next query.
+5. Prints the model's final ``content`` and waits for the next query.
+6. On exit (Ctrl+C/D or EOF), the ``with`` block closes and JDTLS shuts down.
 
 ### Tool system
 
@@ -312,12 +328,23 @@ Tools live in `src/smolrag/tools/`, auto-discovered on import (same pattern
 as actions). Each `Tool` subclass defines ``name``, ``description``,
 ``parameters`` (JSON Schema draft-7), and ``execute(**kwargs) -> str``.
 
+There are two base classes in ``tool.py``:
+
+- **``Tool``** — plain tools. Constructor receives ``project_root``.
+- **``LspTool(Tool)``** — tools that need an LSP client. Constructor
+  receives ``project_root`` and ``lsp_client``. The agent creates a single
+  ``JavaLSPClient`` at startup and injects it into every ``LspTool`` subclass.
+
 Available tools:
 
 | Name | File | Description |
 |------|------|-------------|
 | `glob` | `glob_tool.py` | Pattern-based file search within the project directory |
 | `read` | `read_tool.py` | Read file contents with optional start/end line range (0-based, inclusive) |
+| `lsp/document_symbols` | `lsp_document_symbols.py` | LSP document symbols in a file (optional inline code via ``include_code``) |
+| `lsp/workspace_symbols` | `lsp_workspace_symbols.py` | LSP workspace symbol search (optional inline code via ``include_code``) |
+| `lsp/definition` | `lsp_definition.py` | LSP go-to-definition (optional inline code via ``include_code``) |
+| `lsp/references` | `lsp_references.py` | LSP find-all-references (optional inline code via ``include_code``) |
 
 A tool must define three class attributes and one method:
 
@@ -327,7 +354,8 @@ A tool must define three class attributes and one method:
 ``execute(**kwargs) -> str`` --- executes the tool and returns a plain string (result or error message)
 
 Tools receive ``project_root`` in their constructor (same pattern as
-``Action``). Errors are caught by the agent loop and returned as error
+``Action``). ``LspTool`` subclasses additionally receive ``lsp_client``.
+Errors are caught by the agent loop and returned as error
 strings so the LLM can react to them.
 
 The JSON schema for ``parameters`` must follow the OpenAI function-calling
