@@ -47,7 +47,8 @@ smolRAG/
 │   │   ├── read.py             # ReadTool: read file contents with optional line range
 │   │   ├── lsp_document_symbols.py  # LspDocumentSymbolsTool: LSP document symbols in a file
 │   │   ├── lsp_workspace_symbols.py # LspWorkspaceSymbolsTool: LSP workspace symbol search
-│   │   ├── lsp_definition.py    # LspDefinitionTool: LSP go-to-definition
+│   │   ├── lsp_definition.py    # LspDefinitionTool: LSP go-to-definition (include_code defaults to True)
+│   │   ├── lsp_hover.py          # LspHoverTool: LSP hover documentation (500 char limit)
 │   │   └── lsp_references.py    # LspReferencesTool: LSP find-all-references
 │   ├── actions/                 # Action plugins (auto-discovered by __init__.py)
 │   │   ├── __init__.py          # Auto-scans for Action subclasses
@@ -171,7 +172,7 @@ All actions end with building a contextual query and passing it to
 
 **LSP (`src/smolrag/lsp/`)**: Wraps `multilspy` (Microsoft's LSP client
 library). The `LspClient` ABC handles server lifecycle and provides shared
-file-I/O helpers:
+file-I/O helpers and utility methods:
 
 - ``_uri_to_abs_path(uri) -> str | None`` — converts a ``file://`` URI to an
   absolute filesystem path.
@@ -179,19 +180,26 @@ file-I/O helpers:
   project-relative path.
 - ``_read_code_range(abs_path, start_line, end_line) -> str | None`` — reads
   lines [*start_line*, *end_line*] inclusive from disk.
+- ``_kind_name(kind) -> str | None`` — static method; maps an LSP SymbolKind
+  integer to a lowercase name via ``lsprotocol.types.SymbolKind`` (e.g.
+  ``5`` → ``"class"``). Returns ``None`` for unknown or ``None`` inputs.
 
 ``start()`` is a context manager that launches the LSP server and waits for a
 ``language/status`` ``ProjectStatus`` notification (up to 60 s timeout) before
 yielding, so background Maven/Gradle import jobs finish.
 
-`JavaLSPClient` specializes ``LspClient`` for Eclipse JDTLS. Four methods
-return ``list[CodeSnippet]`` with source code; ``hover`` and ``completions``
-forward the raw LSP response:
+`JavaLSPClient` specializes ``LspClient`` for Eclipse JDTLS. It also inherits
+``LspClient._kind_name()``, a static method that maps LSP SymbolKind integers
+to lowercase names (e.g. ``5`` → ``"class"``) via ``lsprotocol.types.SymbolKind``.
+Four methods return ``list[CodeSnippet]`` with source code; ``hover`` and
+``completions`` forward the raw LSP response:
 
-- ``document_symbols_code(rel_path)`` — all symbols in a file
+- ``document_symbols_code(rel_path)`` — all symbols in a file. Populates
+  ``symbol_name`` and ``symbol_kind`` on each snippet.
 - ``workspace_symbols_code(query)`` — search workspaces for symbols matching
   *query*, uses ``document_symbols_code`` internally to get full ranges via
-  location containment
+  location containment. Carries over ``symbol_name``/``symbol_kind`` from
+  the workspace symbol result.
 - ``definition_code(rel_path, line, col)`` — definition of the symbol at the
   given position
 - ``references_code(rel_path, line, col)`` — all references to the symbol at
@@ -249,6 +257,8 @@ class CodeSnippet:
     source: str      # Describes where/how this snippet was retrieved
     parent: CodeSnippet | None = None  # Enrichment/reference origin (None for top-level)
     retrieval_depth: int = 0  # Distance from a direct retrieval root
+    symbol_name: str | None = None  # LSP symbol name (e.g. "getBarkVolume")
+    symbol_kind: str | None = None  # LSP symbol kind (e.g. "method", "class")
 
     def __str__(self) -> str:
         base = f"{self.path}@{self.start_line}:{self.end_line}, source: {self.source}"
@@ -262,8 +272,9 @@ class CodeSnippet:
 
 ``__str__`` is used by ``ContextBuilder`` for snippet headings. ``to_tool_output()``
 is a compact representation for LLM tool responses: a single header line
-(``path@start:end | source``) with optional code appended below when
-``include_code=True``. Default is ``False`` to keep responses small.
+(``path@start:end`` followed by optional ``symbol_kind`` and ``symbol_name``)
+with optional code appended below when ``include_code=True``. Default is
+``False`` to keep responses small.
 
 Source strings:
 
@@ -282,9 +293,10 @@ level, and is carried forward during dedup merges.
 
 `dedup(snippets: list[CodeSnippet]) -> list[CodeSnippet]` merges overlapping
 ranges (same file, intersecting line ranges) into a single snippet. Merged
-snippets inherit ``source`` and ``parent`` from the first (highest-order)
-snippet in the group. ``_fixup_parents()`` redirects parent references that
-pointed to a merged-away original to the final merged object.
+snippets inherit ``source``, ``parent``, ``symbol_name``, and ``symbol_kind``
+from the first (highest-order) snippet in the group. ``_fixup_parents()``
+redirects parent references that pointed to a merged-away original to the
+final merged object.
 
 ### ContextBuilder (`context_builder.py`)
 
@@ -343,7 +355,8 @@ Available tools:
 | `read` | `read.py` | Read file contents with optional start/end line range (0-based, inclusive) |
 | `lsp/document_symbols` | `lsp_document_symbols.py` | LSP document symbols in a file (optional inline code via ``include_code``) |
 | `lsp/workspace_symbols` | `lsp_workspace_symbols.py` | LSP workspace symbol search (optional inline code via ``include_code``) |
-| `lsp/definition` | `lsp_definition.py` | LSP go-to-definition (optional inline code via ``include_code``) |
+| `lsp/definition` | `lsp_definition.py` | LSP go-to-definition (``include_code`` defaults to ``True``) |
+| `lsp/hover` | `lsp_hover.py` | LSP hover documentation and type info (truncated to 500 characters) |
 | `lsp/references` | `lsp_references.py` | LSP find-all-references (optional inline code via ``include_code``) |
 
 A tool must define three class attributes and one method:
