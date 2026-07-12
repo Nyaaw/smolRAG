@@ -27,7 +27,7 @@ class LspDefinitionTool(LspTool):
             },
             "include_code": {
                 "type": "boolean",
-                "description": "If true, include source code. Defaults to false.",
+                "description": "If true, include source code. Defaults to true.",
             },
         },
         "required": ["relative_path", "line", "column"],
@@ -38,7 +38,7 @@ class LspDefinitionTool(LspTool):
         relative_path: str,
         line: int,
         column: int,
-        include_code: bool = False,
+        include_code: bool = True,
     ) -> str:
         try:
             snippets = self._lsp_client.definition_code(

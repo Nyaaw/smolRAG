@@ -35,6 +35,8 @@ class JavaLSPClient(LspClient):
                     start_line=start_line,
                     end_line=end_line,
                     source="LSP document symbol",
+                    symbol_name=r.get("name"),
+                    symbol_kind=self._kind_name(r.get("kind")),
                 )
             )
         return snippets
@@ -76,6 +78,10 @@ class JavaLSPClient(LspClient):
 
                 if best is not None:
                     best.source = f"LSP workspace search '{query}'"
+                    best.symbol_name = r.get("name", best.symbol_name)
+                    kind_name = self._kind_name(r.get("kind"))
+                    if kind_name is not None:
+                        best.symbol_kind = kind_name
                     snippets.append(best)
 
         return snippets

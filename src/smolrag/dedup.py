@@ -67,6 +67,8 @@ def _merge_overlapping(
                 source=current.source,
                 parent=current.parent,
                 retrieval_depth=current.retrieval_depth,
+                symbol_name=current.symbol_name,
+                symbol_kind=current.symbol_kind,
             )
             group.append(s)
         else:

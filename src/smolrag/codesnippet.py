@@ -14,6 +14,8 @@ class CodeSnippet:
     source: str
     parent: CodeSnippet | None = None
     retrieval_depth: int = 0
+    symbol_name: str | None = None
+    symbol_kind: str | None = None
 
     def __str__(self) -> str:
         base = f"{self.path}@{self.start_line}:{self.end_line}, source: {self.source}"
@@ -26,7 +28,12 @@ class CodeSnippet:
 
         :param include_code: If True, append the source code after the header line.
         """
-        result = f"{self.path}@{self.start_line}:{self.end_line} | {self.source}"
+        parts = [f"{self.path}@{self.start_line}:{self.end_line}"]
+        if self.symbol_kind is not None:
+            parts.append(self.symbol_kind)
+        if self.symbol_name is not None:
+            parts.append(self.symbol_name)
+        result = " ".join(parts)
         if include_code:
             result += "\n" + self.code
         return result

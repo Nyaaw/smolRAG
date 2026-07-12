@@ -9,6 +9,7 @@ from pathlib import Path, PurePath
 from typing import Generator, Any
 from urllib.parse import unquote
 
+from lsprotocol.types import SymbolKind
 from multilspy import SyncLanguageServer
 from multilspy.multilspy_config import MultilspyConfig, Language
 from multilspy.multilspy_logger import MultilspyLogger
@@ -53,6 +54,15 @@ class LspClient(ABC):
     def _language(self) -> Language:
         """The Language enum value for the target language."""
         ...
+
+    @staticmethod
+    def _kind_name(kind: int | None) -> str | None:
+        if kind is None:
+            return None
+        try:
+            return SymbolKind(kind).name.lower()
+        except ValueError:
+            return None
 
     def __init__(self, project_root: str) -> None:
         """
