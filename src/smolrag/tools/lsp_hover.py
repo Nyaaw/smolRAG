@@ -6,7 +6,7 @@ class LspHoverTool(LspTool):
 
     _MAX_CHARS = 500
 
-    name = "lsp/hover"
+    name = "lsp-hover"
     description = (
         "Get hover documentation, type information, and signature "
         "for the symbol at the given file, line, and column. "

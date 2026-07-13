@@ -4,7 +4,7 @@ from smolrag.tools.tool import LspTool
 class LspDefinitionTool(LspTool):
     """Find the definition of a symbol via LSP."""
 
-    name = "lsp/definition"
+    name = "lsp-definition"
     description = (
         "Find where the symbol at the given file, line, and column is defined. "
         "Returns the definition location(s) with optional source code. "

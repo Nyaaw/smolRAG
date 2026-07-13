@@ -4,7 +4,7 @@ from smolrag.tools.tool import LspTool
 class LspDocumentSymbolsTool(LspTool):
     """Get all symbols in a file via LSP."""
 
-    name = "lsp/document_symbols"
+    name = "lsp-document_symbols"
     description = (
         "Get all symbols (classes, methods, fields, etc.) declared in a file. "
         "Returns one symbol per line with file path and line range. "

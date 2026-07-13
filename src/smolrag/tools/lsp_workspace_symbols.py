@@ -4,7 +4,7 @@ from smolrag.tools.tool import LspTool
 class LspWorkspaceSymbolsTool(LspTool):
     """Search for symbols across the workspace via LSP."""
 
-    name = "lsp/workspace_symbols"
+    name = "lsp-workspace_symbols"
     description = (
         "Search for symbols across the entire workspace by name. "
         "Uses camel-case prefix matching (e.g. 'OutputRed' finds 'OutputRedirector'). "

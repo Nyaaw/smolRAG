@@ -4,7 +4,7 @@ from smolrag.tools.tool import LspTool
 class LspReferencesTool(LspTool):
     """Find all references to a symbol via LSP."""
 
-    name = "lsp/references"
+    name = "lsp-references"
     description = (
         "Find all references to the symbol at the given file, line, and column. "
         "Returns each reference location with optional source code. "

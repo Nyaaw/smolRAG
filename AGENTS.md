@@ -353,11 +353,11 @@ Available tools:
 |------|------|-------------|
 | `glob` | `glob.py` | Pattern-based file search within the project directory |
 | `read` | `read.py` | Read file contents with optional start/end line range (0-based, inclusive) |
-| `lsp/document_symbols` | `lsp_document_symbols.py` | LSP document symbols in a file (optional inline code via ``include_code``) |
-| `lsp/workspace_symbols` | `lsp_workspace_symbols.py` | LSP workspace symbol search (optional inline code via ``include_code``) |
-| `lsp/definition` | `lsp_definition.py` | LSP go-to-definition (``include_code`` defaults to ``True``) |
-| `lsp/hover` | `lsp_hover.py` | LSP hover documentation and type info (truncated to 500 characters) |
-| `lsp/references` | `lsp_references.py` | LSP find-all-references (optional inline code via ``include_code``) |
+| `lsp-document_symbols` | `lsp_document_symbols.py` | LSP document symbols in a file (optional inline code via ``include_code``) |
+| `lsp-workspace_symbols` | `lsp_workspace_symbols.py` | LSP workspace symbol search (optional inline code via ``include_code``) |
+| `lsp-definition` | `lsp_definition.py` | LSP go-to-definition (``include_code`` defaults to ``True``) |
+| `lsp-hover` | `lsp_hover.py` | LSP hover documentation and type info (truncated to 500 characters) |
+| `lsp-references` | `lsp_references.py` | LSP find-all-references (optional inline code via ``include_code``) |
 
 A tool must define three class attributes and one method:
 
