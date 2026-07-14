@@ -54,7 +54,10 @@ def main() -> None:
                                     [(action.name, "".join([action.name, " : ", action.description])) for action in actions])
                 print()
 
-            action_cls = actions.get(action_name)
+            action_cls = next((a for a in actions if a.name == action_name), None)
+            if action_cls is None:
+                print(f"Unknown action: {action_name}")
+                sys.exit(1)
 
             action = action_cls(args.project)
             action.run()
