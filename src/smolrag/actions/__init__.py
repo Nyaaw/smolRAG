@@ -17,6 +17,7 @@ def _load_action(module_name: str) -> None:
             and issubclass(obj, Action)
             and obj is not Action
             and hasattr(obj, "name")
+            and hasattr(obj, "description")
         ):
             _registry.append(obj)
 

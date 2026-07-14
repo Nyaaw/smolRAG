@@ -7,7 +7,7 @@ class IndexAction(Action):
     """Index a project into a local Qdrant collection for BM25 retrieval."""
 
     name = "index"
-    #TODO: add description for printing in choice menus
+    description = "Indexes the codebase. A must-do if smolrag is used for the first time on a project, or if project files changed."
 
     def run(self) -> None:
         indexer = QdrantIndexer(self.project_root)

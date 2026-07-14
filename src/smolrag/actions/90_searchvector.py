@@ -1,3 +1,5 @@
+from prompt_toolkit import prompt
+
 from smolrag.actions.action import Action
 from smolrag.vector import QdrantRetriever
 from smolrag.context_builder import ContextBuilder
@@ -6,12 +8,11 @@ from smolrag.context_builder import ContextBuilder
 class SearchVectorAction(Action):
     """Search the BM25 index for code snippets matching a query."""
 
-    name = "debug-searchvector"
-    #TODO: add description for printing in choice menus
+    name = "searchvector"
+    description = "DEBUG: Tests the vector search"
 
     def run(self) -> None:
-        query = input("Query: ").strip()
-        #TODO: replace with prompt_toolkit input
+        query = prompt("Query: ").strip()
 
         if not query:
             print("No query provided.")

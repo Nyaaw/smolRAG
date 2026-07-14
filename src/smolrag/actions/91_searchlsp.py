@@ -1,3 +1,5 @@
+from prompt_toolkit import prompt
+
 from smolrag.actions.action import Action
 from smolrag.lsp import JavaLSPClient
 from smolrag.context_builder import ContextBuilder
@@ -7,13 +9,12 @@ class SearchLspAction(Action):
     """Search for symbols via LSP only (exact/camel-case prefix matching)."""
 
     name = "search-lsp"
-    #TODO: add description for printing in choice menus
+    description = "DEBUG: Tests the LSP symbol search"
 
     def run(self) -> None:
         client = JavaLSPClient(self.project_root)
         with client.start():
-            query = input("Query: ").strip()
-            #TODO: replace with prompt_toolkit input
+            query = prompt("Query: ").strip()
 
             if not query:
                 print("No query provided.")

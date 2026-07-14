@@ -51,7 +51,7 @@ def main() -> None:
             action_name = args.action
             if action_name is None:
                 action_name = choice("Available actions:", options=
-                                    [(action.name, action.name) for action in actions])
+                                    [(action.name, "".join([action.name, " : ", action.description])) for action in actions])
                 print()
 
             action_cls = actions.get(action_name)

@@ -1,3 +1,5 @@
+from prompt_toolkit import prompt
+
 from smolrag.actions.action import Action
 from smolrag.context_builder import ContextBuilder
 from smolrag.dedup import dedup
@@ -11,6 +13,7 @@ class RefactorCostAction(Action):
     (LSP + BM25), all its references, and inheritance context."""
 
     name = "refactor-cost"
+    description = "Estimates the cost of refactoring a symbol. The action can be described in natural langage."
 
     def run(self) -> None:
         client = JavaLSPClient(self.project_root)
@@ -18,15 +21,13 @@ class RefactorCostAction(Action):
         enricher = JavaEnricher(client, self.project_root)
 
         with client.start():
-            target = input("Refactor target: ").strip()
-            #TODO: replace with prompt_toolkit input
+            target = prompt("Refactor target: ").strip()
 
             if not target:
                 print("No target provided.")
                 return
 
-            refactor = input("Refactor action: ").strip()
-            #TODO: replace with prompt_toolkit input
+            refactor = prompt("Refactor action: ").strip()
 
             if not refactor:
                 print("No refactor action provided.")

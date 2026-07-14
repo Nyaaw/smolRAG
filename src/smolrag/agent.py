@@ -3,6 +3,8 @@ import sys
 from pathlib import Path
 
 import openai
+from prompt_toolkit import prompt
+
 from smolrag.config import (
     DEEPSEEK_API_KEY,
     DEEPSEEK_BASE_URL,
@@ -64,7 +66,7 @@ def run_agent(project_root: str) -> None:
 
         while True:
             try:
-                user_input = input("> ")
+                user_input = prompt("> ")
             except (EOFError, KeyboardInterrupt):
                 print()
                 break

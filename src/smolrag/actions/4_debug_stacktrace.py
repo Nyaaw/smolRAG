@@ -1,5 +1,7 @@
 import re
 
+from prompt_toolkit import prompt
+
 from smolrag.actions.action import Action
 from smolrag.lsp import JavaLSPClient
 from smolrag.vector import QdrantRetriever
@@ -15,7 +17,7 @@ class DebugStacktraceAction(Action):
     and build a context block for debugging."""
 
     name = "debug-stacktrace"
-    #TODO: add description for printing in choice menus
+    description = "Attempts to fix an execution error by analysing the stacktrace. Experimental."
 
     def run(self) -> None:
         client = JavaLSPClient(self.project_root)
@@ -25,8 +27,7 @@ class DebugStacktraceAction(Action):
             print("Paste the stacktrace (end with an empty line):")
             lines: list[str] = []
             while True:
-                line = input()
-                #TODO: replace with prompt_toolkit input
+                line = prompt()
 
                 if not line:
                     break

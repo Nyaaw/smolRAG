@@ -1,3 +1,5 @@
+from prompt_toolkit import prompt
+
 from smolrag.actions.action import Action
 from smolrag.lsp import JavaLSPClient, JavaEnricher
 from smolrag.vector import QdrantRetriever
@@ -10,7 +12,7 @@ class ExplainHybridAction(Action):
     fill gaps with BM25, and build a context block."""
 
     name = "explain"
-    #TODO: add description for printing in choice menus
+    description = "Gets a symbol (function, class, interface, variable) by its name and explains it"
 
     def run(self) -> None:
         client = JavaLSPClient(self.project_root)
@@ -18,8 +20,7 @@ class ExplainHybridAction(Action):
         enricher = JavaEnricher(client, self.project_root)
 
         with client.start():
-            query = input("Symbol name: ").strip()
-            #TODO: replace with prompt_toolkit input
+            query = prompt("Symbol name: ").strip()
 
             if not query:
                 print("No query provided.")
