@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import importlib
-import os
+from pathlib import Path
 from typing import Type
 
 from smolrag.tools.tool import Tool
@@ -23,11 +23,11 @@ def _load_tool(module_name: str) -> None:
             _registry.append(obj)
 
 
-_tools_dir = os.path.dirname(__file__)
+_tools_dir = Path(__file__).parent
 
-for path in os.listdir(_tools_dir):
-    if path.endswith(".py") and not path.startswith("__"):
-        module_name = path.removesuffix(".py")
+for entry in _tools_dir.iterdir():
+    if entry.suffix == ".py" and not entry.name.startswith("__"):
+        module_name = entry.stem
         _load_tool(module_name)
 
 

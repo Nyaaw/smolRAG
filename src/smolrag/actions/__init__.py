@@ -1,5 +1,5 @@
 import importlib
-import os
+from pathlib import Path
 from typing import Type
 
 from smolrag.actions.action import Action
@@ -21,14 +21,14 @@ def _load_action(module_name: str) -> None:
             _registry.append(obj)
 
 
-_actions_dir = os.path.dirname(__file__) #TODO: only use pathlib
+_actions_dir = Path(__file__).parent
 
 actions : list[tuple[int, Type[Action]]] = []
 
-for path in os.listdir(_actions_dir):
-    split0 = path.split("_")[0]
-    if path.endswith(".py") and not path.startswith("__") and split0.isnumeric():
-        actions.append((int(split0), path))
+for entry in _actions_dir.iterdir():
+    split0 = entry.name.split("_")[0]
+    if entry.suffix == ".py" and not entry.name.startswith("__") and split0.isnumeric():
+        actions.append((int(split0), entry.name))
 
 actions.sort(key=lambda t: t[0])
 

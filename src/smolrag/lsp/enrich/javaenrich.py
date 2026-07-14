@@ -1,5 +1,5 @@
-import os
 import re
+from pathlib import Path
 
 from smolrag.lsp.enrich.enrich import LanguageEnricher
 from smolrag.lsp.javalspclient import JavaLSPClient
@@ -92,7 +92,7 @@ class JavaEnricher(LanguageEnricher):
         to find the smallest class or interface that contains its line range.
 
         Returns a CodeSnippet for that class, or None if not found."""
-        abs_path = os.path.join(self._project_root, snippet.path) #TODO: only use pathlib
+        abs_path = str(Path(self._project_root) / snippet.path)
         try:
             doc_syms, _ = self._lspclient._lsp.request_document_symbols(snippet.path)
         except Exception:

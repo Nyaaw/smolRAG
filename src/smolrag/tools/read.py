@@ -1,4 +1,4 @@
-import os
+from pathlib import Path
 
 from smolrag.tools.tool import Tool
 
@@ -38,14 +38,13 @@ class ReadTool(Tool):
     def execute(
         self, path: str, start: int | None = None, end: int | None = None
     ) -> str:
-        #TODO: only use pathlib
         #TODO: prevent path traversal
-        abs_path = os.path.normpath(os.path.join(self.project_root, path))
-        if not abs_path.startswith(os.path.realpath(self.project_root)):
+        abs_path = (Path(self.project_root) / path).resolve()
+        if not str(abs_path).startswith(str(Path(self.project_root).resolve())):
             return f"Error: path '{path}' escapes the project root."
 
         try:
-            with open(abs_path, "r", encoding="utf-8") as f:
+            with open(str(abs_path), "r", encoding="utf-8") as f:
                 lines = f.readlines()
         except FileNotFoundError:
             return f"Error: file '{path}' not found."

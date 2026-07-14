@@ -1,5 +1,4 @@
 import glob as glob_module
-import os
 
 from smolrag.tools.tool import Tool
 

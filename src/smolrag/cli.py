@@ -1,6 +1,7 @@
 import argparse
-import os
 import sys
+from pathlib import Path
+
 from prompt_toolkit import choice, prompt
 
 from smolrag.actions import list_actions
@@ -15,7 +16,7 @@ def main() -> None:
         )
         parser.add_argument(
             "--project",
-            default=os.getcwd(),
+            default=str(Path.cwd()),
             help="Absolute path to the project root (default: current directory)",
         )
         parser.add_argument(
@@ -24,7 +25,7 @@ def main() -> None:
             help="Action to run (omit to choose interactively)",
         )
         args = parser.parse_args()
-        args.project = os.path.abspath(args.project) #TODO: only use pathlib
+        args.project = str(Path(args.project).resolve())
 
         mode_choice = choice("What would you like to do ?", options=[
             ("static", "static: prepare a prompt to copy/paste in your favorite LLM chat"),

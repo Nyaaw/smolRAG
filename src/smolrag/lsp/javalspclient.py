@@ -1,4 +1,4 @@
-import os
+from pathlib import Path
 from typing import Any
 
 from multilspy.multilspy_config import Language
@@ -19,7 +19,7 @@ class JavaLSPClient(LspClient):
         if not results:
             return []
 
-        abs_path = os.path.join(self._project_root, relative_path)
+        abs_path = str(Path(self._project_root) / relative_path)
         snippets: list[CodeSnippet] = []
         for r in results:
             rng = r.get("range", {})

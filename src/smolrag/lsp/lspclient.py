@@ -5,7 +5,7 @@ import sys
 import threading
 from abc import ABC, abstractmethod
 from contextlib import contextmanager
-from pathlib import Path, PurePath
+from pathlib import Path
 from typing import Generator, Any
 from urllib.parse import unquote
 
@@ -114,7 +114,7 @@ class LspClient(ABC):
 
     def _abs_to_rel_path(self, abs_path: str) -> str:
         """Convert an absolute filesystem path to a project-relative path."""
-        return str(PurePath(os.path.relpath(abs_path, self._project_root)))
+        return str(Path(abs_path).relative_to(self._project_root))
 
     def _read_code_range(
         self, abs_path: str, start_line: int, end_line: int
