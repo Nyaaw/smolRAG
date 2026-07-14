@@ -1,7 +1,11 @@
+from pathlib import Path
+
 from smolrag.codesnippet import CodeSnippet
 
 _MAX_CODE_TOKENS = 80_000
 _CHARS_PER_TOKEN = 3
+
+_SYSTEM_PROMPT = (Path(__file__).parent / "prompts" / "context_builder_system.txt").read_text()
 
 #TODO: ids for each codesnippet to make the context more readable
 #TODO: include line numbers if the LLMs struggle with counting lines
@@ -70,9 +74,7 @@ class ContextBuilder:
             kept = ordered
 
         parts: list[str] = [
-            "You are a helpful assistant, augmented with RAG capabilities. "
-            "You will answer the user's request using the code snippets "
-            "the retrieval system retrieved for you.",
+            _SYSTEM_PROMPT,
             "",
             f"## {query}",
             "",

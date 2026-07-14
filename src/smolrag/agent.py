@@ -1,5 +1,6 @@
 import json
 import sys
+from pathlib import Path
 
 import openai
 from smolrag.config import (
@@ -13,6 +14,7 @@ from smolrag.lsp import JavaLSPClient
 from smolrag.tools import list_tools
 from smolrag.tools.tool import LspTool, Tool
 
+SYSTEM_PROMPT = (Path(__file__).parent / "prompts" / "agent_system.txt").read_text()
 
 def run_agent(project_root: str) -> None:
     """Run the agentic loop: read user queries from stdin, call DeepSeek
@@ -56,6 +58,9 @@ def run_agent(project_root: str) -> None:
         print(f"Thinking: {'on' if DEEPSEEK_THINKING else 'off'}")
         print(f"Tools available: {', '.join(sorted(tool_registry.keys())) or 'none'}")
         print()
+
+        messages.append({"role": "system", "content": SYSTEM_PROMPT})
+
 
         while True:
             try:
@@ -113,6 +118,6 @@ def run_agent(project_root: str) -> None:
                     if DEEPSEEK_THINKING and hasattr(msg, "reasoning_content") and msg.reasoning_content:
                         print(f"[reasoning] {msg.reasoning_content}")
                     print()
-                    print(msg.content)
+                    print(f"[response] {msg.content}")
                     print()
                     break
