@@ -2,6 +2,8 @@ import pytest
 
 from smolrag.actions import list_actions
 
+from tests.helpers import patch_prompt
+
 pytestmark = [pytest.mark.lsp, pytest.mark.slow]
 
 
@@ -9,7 +11,7 @@ def test_search_lsp_finds_class(fixture_project, require_lsp, monkeypatch, capsy
     """Search LSP for 'Cat' and verify the full class code with Javadoc."""
     SearchLspAction = {a.name: a for a in list_actions()}["search-lsp"]
     action = SearchLspAction(fixture_project)
-    monkeypatch.setattr("builtins.input", lambda _: "Cat")
+    patch_prompt(monkeypatch, type(action), "Cat")
     action.run()
     captured = capsys.readouterr()
 
@@ -30,7 +32,7 @@ def test_search_lsp_finds_interface(fixture_project, require_lsp, monkeypatch, c
     """Search LSP for 'Pet' and verify the full interface code with Javadoc."""
     SearchLspAction = {a.name: a for a in list_actions()}["search-lsp"]
     action = SearchLspAction(fixture_project)
-    monkeypatch.setattr("builtins.input", lambda _: "Pet")
+    patch_prompt(monkeypatch, type(action), "Pet")
     action.run()
     captured = capsys.readouterr()
 
@@ -46,7 +48,7 @@ def test_search_lsp_no_match_shows_message(fixture_project, require_lsp, monkeyp
     """Searching for a non-existent symbol shows the 'No results' message."""
     SearchLspAction = {a.name: a for a in list_actions()}["search-lsp"]
     action = SearchLspAction(fixture_project)
-    monkeypatch.setattr("builtins.input", lambda _: "NoSuchClassXYZ")
+    patch_prompt(monkeypatch, type(action), "NoSuchClassXYZ")
     action.run()
     captured = capsys.readouterr()
 
@@ -57,7 +59,7 @@ def test_search_lsp_empty_query_shows_message(fixture_project, require_lsp, monk
     """Empty query shows 'No query provided.'"""
     SearchLspAction = {a.name: a for a in list_actions()}["search-lsp"]
     action = SearchLspAction(fixture_project)
-    monkeypatch.setattr("builtins.input", lambda _: "")
+    patch_prompt(monkeypatch, type(action), "")
     action.run()
     captured = capsys.readouterr()
 
@@ -68,7 +70,7 @@ def test_search_lsp_output_has_context_block(fixture_project, require_lsp, monke
     """LSP search output follows ContextBuilder markdown format with real code."""
     SearchLspAction = {a.name: a for a in list_actions()}["search-lsp"]
     action = SearchLspAction(fixture_project)
-    monkeypatch.setattr("builtins.input", lambda _: "Cat")
+    patch_prompt(monkeypatch, type(action), "Cat")
     action.run()
     captured = capsys.readouterr()
 
@@ -91,7 +93,7 @@ def test_explain_action_finds_class_with_inheritance(fixture_project, require_ls
 
     ExplainAction = {a.name: a for a in list_actions()}["explain"]
     action = ExplainAction(fixture_project)
-    monkeypatch.setattr("builtins.input", lambda _: "Cat")
+    patch_prompt(monkeypatch, type(action), "Cat")
     action.run()
     captured = capsys.readouterr()
 

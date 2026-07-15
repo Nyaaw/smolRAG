@@ -2,6 +2,7 @@ import pytest
 from openai import OpenAI
 
 from smolrag.actions import list_actions
+from tests.helpers import patch_prompt
 from smolrag.config import (
     DEEPSEEK_API_KEY,
     DEEPSEEK_BASE_URL,
@@ -49,15 +50,6 @@ def _extract_context_block(output: str) -> str | None:
     return output[idx:]
 
 
-def _multi_input(values):
-    it = iter(values)
-
-    def _input(_prompt=None):
-        return next(it)
-
-    return _input
-
-
 def _print_response(capsys, label: str, context: str, reasoning: str | None, answer: str) -> None:
     with capsys.disabled():
         print(f"\n===== {label} =====")
@@ -95,8 +87,9 @@ def test_e2e_searchvector(fixture_project, monkeypatch, capsys):
 
     _get_action("index")(fixture_project).run()
 
-    monkeypatch.setattr("builtins.input", lambda _: "Cat")
-    _get_action("debug-searchvector")(fixture_project).run()
+    SearchVector = _get_action("searchvector")
+    patch_prompt(monkeypatch, SearchVector, "Cat")
+    SearchVector(fixture_project).run()
 
     captured = capsys.readouterr()
     context = _extract_context_block(captured.out)
@@ -113,8 +106,9 @@ def test_e2e_search_lsp(fixture_project, require_lsp, monkeypatch, capsys):
     if not DEEPSEEK_API_KEY:
         pytest.skip("DEEPSEEK_API_KEY not set")
 
-    monkeypatch.setattr("builtins.input", lambda _: "Cat")
-    _get_action("search-lsp")(fixture_project).run()
+    SearchLsp = _get_action("search-lsp")
+    patch_prompt(monkeypatch, SearchLsp, "Cat")
+    SearchLsp(fixture_project).run()
 
     captured = capsys.readouterr()
     context = _extract_context_block(captured.out)
@@ -133,8 +127,9 @@ def test_e2e_explain(fixture_project, require_lsp, monkeypatch, capsys):
 
     _get_action("index")(fixture_project).run()
 
-    monkeypatch.setattr("builtins.input", lambda _: "Cat")
-    _get_action("explain")(fixture_project).run()
+    Explain = _get_action("explain")
+    patch_prompt(monkeypatch, Explain, "Cat")
+    Explain(fixture_project).run()
 
     captured = capsys.readouterr()
     context = _extract_context_block(captured.out)
@@ -151,11 +146,9 @@ def test_e2e_refactor_cost(fixture_project, require_lsp, monkeypatch, capsys):
     if not DEEPSEEK_API_KEY:
         pytest.skip("DEEPSEEK_API_KEY not set")
 
-    monkeypatch.setattr(
-        "builtins.input",
-        _multi_input(["Cat", "Rename scratch to claw"]),
-    )
-    _get_action("refactor-cost")(fixture_project).run()
+    RefactorCost = _get_action("refactor-cost")
+    patch_prompt(monkeypatch, RefactorCost, "Cat", "Rename scratch to claw")
+    RefactorCost(fixture_project).run()
 
     captured = capsys.readouterr()
     context = _extract_context_block(captured.out)
@@ -172,22 +165,20 @@ def test_e2e_debug_stacktrace(fixture_project, require_lsp, monkeypatch, capsys)
     if not DEEPSEEK_API_KEY:
         pytest.skip("DEEPSEEK_API_KEY not set")
 
-    monkeypatch.setattr(
-        "builtins.input",
-        _multi_input(
-            [
-                "Exception in thread \"main\" java.lang.NullPointerException: "
-                "Cannot invoke \"com.example.Cat.scratch()\" because \"cat\" is null",
-                "\tat com.example.Veterinarian.treat(Veterinarian.java:50)",
-                "\tat com.example.Main.doCheckup(Main.java:31)",
-                "\tat com.example.Main.handlePet(Main.java:25)",
-                "\tat com.example.Main.runScenario(Main.java:18)",
-                "\tat com.example.Main.main(Main.java:12)",
-                "",
-            ]
-        ),
+    DebugStacktrace = _get_action("debug-stacktrace")
+    patch_prompt(
+        monkeypatch,
+        DebugStacktrace,
+        "Exception in thread \"main\" java.lang.NullPointerException: "
+        "Cannot invoke \"com.example.Cat.scratch()\" because \"cat\" is null",
+        "\tat com.example.Veterinarian.treat(Veterinarian.java:50)",
+        "\tat com.example.Main.doCheckup(Main.java:31)",
+        "\tat com.example.Main.handlePet(Main.java:25)",
+        "\tat com.example.Main.runScenario(Main.java:18)",
+        "\tat com.example.Main.main(Main.java:12)",
+        "",
     )
-    _get_action("debug-stacktrace")(fixture_project).run()
+    DebugStacktrace(fixture_project).run()
 
     captured = capsys.readouterr()
     context = _extract_context_block(captured.out)

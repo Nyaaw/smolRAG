@@ -3,3 +3,4 @@ __pycache__
 .smolrag
 .env
 tests/fixtures/java-sample/target/
+.coverage

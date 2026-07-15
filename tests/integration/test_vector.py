@@ -1,5 +1,7 @@
 from smolrag.actions import list_actions
 
+from tests.helpers import patch_prompt
+
 
 def test_index_action_builds_index(fixture_project, capsys):
     """Index the fixture project and verify the completion message."""
@@ -15,9 +17,9 @@ def test_searchvector_finds_results(fixture_project, monkeypatch, capsys):
     IndexAction = {a.name: a for a in list_actions()}["index"]
     IndexAction(fixture_project).run()
 
-    SearchVectorAction = {a.name: a for a in list_actions()}["debug-searchvector"]
+    SearchVectorAction = {a.name: a for a in list_actions()}["searchvector"]
     query_input = "eat"
-    monkeypatch.setattr("builtins.input", lambda _: query_input)
+    patch_prompt(monkeypatch, SearchVectorAction, query_input)
     SearchVectorAction(fixture_project).run()
     captured = capsys.readouterr()
 
@@ -36,21 +38,25 @@ def test_searchvector_finds_results(fixture_project, monkeypatch, capsys):
 
 def test_searchvector_empty_query_shows_message(fixture_project, monkeypatch, capsys):
     """Empty query triggers the 'No query provided.' guard."""
-    SearchVectorAction = {a.name: a for a in list_actions()}["debug-searchvector"]
-    monkeypatch.setattr("builtins.input", lambda _: "")
+    SearchVectorAction = {a.name: a for a in list_actions()}["searchvector"]
+    patch_prompt(monkeypatch, SearchVectorAction, "")
     SearchVectorAction(fixture_project).run()
     captured = capsys.readouterr()
     assert "No query provided." in captured.out
 
 
-def test_searchvector_no_index_shows_message(fixture_project, monkeypatch, capsys):
-    """Search without a prior index build shows 'No results for'."""
-    SearchVectorAction = {a.name: a for a in list_actions()}["debug-searchvector"]
+def test_searchvector_no_index_shows_message(fixture_project, tmp_path, monkeypatch, capsys):
+    """Search without a prior index build shows 'No results for'.
+
+    Uses an isolated SMOLRAG_CACHE_DIR so indexes persisted by other
+    tests (or previous runs) cannot leak into this one.
+    """
+    monkeypatch.setenv("SMOLRAG_CACHE_DIR", str(tmp_path))
+    SearchVectorAction = {a.name: a for a in list_actions()}["searchvector"]
     query_input = "main"
-    monkeypatch.setattr("builtins.input", lambda _: query_input)
+    patch_prompt(monkeypatch, SearchVectorAction, query_input)
     SearchVectorAction(fixture_project).run()
     captured = capsys.readouterr()
-    #TODO: delete index action or better index handling for tests
     assert f"No results for '{query_input}'." in captured.out
 
 
@@ -59,9 +65,9 @@ def test_searchvector_nonsense_returns_empty(fixture_project, monkeypatch, capsy
     IndexAction = {a.name: a for a in list_actions()}["index"]
     IndexAction(fixture_project).run()
 
-    SearchVectorAction = {a.name: a for a in list_actions()}["debug-searchvector"]
+    SearchVectorAction = {a.name: a for a in list_actions()}["searchvector"]
     nonsense = "xyznonexistent123"
-    monkeypatch.setattr("builtins.input", lambda _: nonsense)
+    patch_prompt(monkeypatch, SearchVectorAction, nonsense)
     SearchVectorAction(fixture_project).run()
     captured = capsys.readouterr()
     assert f"No results for '{nonsense}'." in captured.out
@@ -73,13 +79,13 @@ def test_searchvector_output_has_context_block_structure(fixture_project, monkey
     IndexAction = {a.name: a for a in list_actions()}["index"]
     IndexAction(fixture_project).run()
 
-    SearchVectorAction = {a.name: a for a in list_actions()}["debug-searchvector"]
-    monkeypatch.setattr("builtins.input", lambda _: "Cat")
+    SearchVectorAction = {a.name: a for a in list_actions()}["searchvector"]
+    patch_prompt(monkeypatch, SearchVectorAction, "Cat")
     SearchVectorAction(fixture_project).run()
     captured = capsys.readouterr()
 
     assert "## Retrieved code snippets:" in captured.out
-    assert "augmented with RAG capabilities" in captured.out
+    assert "enhanced with RAG capabilities" in captured.out
     assert "```java" in captured.out
     assert "```" in captured.out
     # Full Cat class code including Javadoc, constructor, and methods
