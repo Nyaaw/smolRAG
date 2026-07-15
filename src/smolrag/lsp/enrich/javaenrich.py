@@ -2,7 +2,7 @@ import re
 from pathlib import Path
 
 from smolrag.lsp.enrich.enrich import LanguageEnricher
-from smolrag.lsp.javalspclient import JavaLSPClient
+from smolrag.lsp.lspclient import LspClient
 from smolrag.codesnippet import CodeSnippet
 
 # Java-specific regex for class inheritance patterns
@@ -116,16 +116,17 @@ class JavaEnricher(LanguageEnricher):
                 area = (sym_end - sym_start) * (sym_end - sym_start)
                 if area < parent_area:
                     parent_area = area
-                    code = self._lspclient._read_code_range(
+                    code, total_lines = LspClient.read_code_range(
                         abs_path, sym_start, sym_end
                     )
-                    if code is None:
+                    if not code:
                         continue
                     parent = CodeSnippet(
                         code=code,
                         path=snippet.path,
                         start_line=sym_start,
                         end_line=sym_end,
+                        total_lines=total_lines,
                         source="containing class",
                         parent=snippet,
                         retrieval_depth=snippet.retrieval_depth + 1,

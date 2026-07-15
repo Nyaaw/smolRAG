@@ -178,8 +178,8 @@ file-I/O helpers and utility methods:
   absolute filesystem path.
 - ``_abs_to_rel_path(abs_path) -> str`` — converts an absolute path to a
   project-relative path.
-- ``_read_code_range(abs_path, start_line, end_line) -> str | None`` — reads
-  lines [*start_line*, *end_line*] inclusive from disk.
+- ``read_code_range(abs_path, start_line, end_line) -> tuple[str, int]`` — static method; reads
+  lines [*start_line*, *end_line*] inclusive from disk and returns (code, total_lines).
 - ``_kind_name(kind) -> str | None`` — static method; maps an LSP SymbolKind
   integer to a lowercase name via ``lsprotocol.types.SymbolKind`` (e.g.
   ``5`` → ``"class"``). Returns ``None`` for unknown or ``None`` inputs.

@@ -104,6 +104,9 @@ class QdrantIndexer:
                         "path": s.path,
                         "start_line": s.start_line,
                         "end_line": s.end_line,
+                        "total_lines": s.total_lines,
+                        "symbol_name": s.symbol_name,
+                        "symbol_kind": s.symbol_kind,
                     },
                 )
                 for j, (s, emb) in enumerate(zip(batch, embeddings))
@@ -161,6 +164,9 @@ class QdrantRetriever:
                 path=p.payload["path"],
                 start_line=p.payload["start_line"],
                 end_line=p.payload["end_line"],
+                total_lines=p.payload["total_lines"],
+                symbol_name=p.payload["symbol_name"],
+                symbol_kind=p.payload["symbol_kind"],
                 source=f"BM25 search '{query}'",
             )
             for p in results.points

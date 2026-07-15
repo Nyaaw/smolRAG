@@ -8,7 +8,6 @@ _CHARS_PER_TOKEN = 3
 _SYSTEM_PROMPT = (Path(__file__).parent / "prompts" / "context_builder_system.txt").read_text()
 
 #TODO: ids for each codesnippet to make the context more readable
-#TODO: include line numbers if the LLMs struggle with counting lines
 #TODO: include total line count for every file
 #TODO: change wording of some codesnippets source.
 

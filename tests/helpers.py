@@ -1,8 +1,8 @@
 from smolrag.codesnippet import CodeSnippet
 
 
-def _cs(code: str, path: str, start: int, end: int, source: str = "", parent: CodeSnippet | None = None) -> CodeSnippet:
-    return CodeSnippet(code=code, path=path, start_line=start, end_line=end, source=source, parent=parent)
+def _cs(code: str, path: str, start: int, end: int, source: str = "", parent: CodeSnippet | None = None, total_lines: int = 0) -> CodeSnippet:
+    return CodeSnippet(code=code, path=path, start_line=start, end_line=end, total_lines=total_lines, source=source, parent=parent)
 
 
 def _code(start: int, end: int) -> str:

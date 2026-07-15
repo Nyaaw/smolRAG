@@ -102,6 +102,7 @@ class CodeChunker:
                     path=rel_path,
                     start_line=0,
                     end_line=total - 1,
+                    total_lines=total,
                     source="file chunk",
                 )
             ]
@@ -118,6 +119,7 @@ class CodeChunker:
                     path=rel_path,
                     start_line=start,
                     end_line=end - 1,
+                    total_lines=total,
                     source="file chunk",
                 )
             )

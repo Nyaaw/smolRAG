@@ -1,6 +1,7 @@
 from pathlib import Path
 
 from smolrag.tools.tool import Tool
+from smolrag.codesnippet import CodeSnippet
 
 
 class ReadTool(Tool):
@@ -67,8 +68,5 @@ class ReadTool(Tool):
         if end_line >= len(lines):
             end_line = len(lines) - 1
 
-        result_lines = []
-        for i in range(start_line, end_line + 1):
-            result_lines.append(f"{i}\t{lines[i].rstrip()}")
-
-        return "\n".join(result_lines)
+        selected = "".join(lines[start_line : end_line + 1]).rstrip("\n")
+        return CodeSnippet.with_line_numbers(selected)

@@ -115,24 +115,27 @@ class LspClient(ABC):
     def _abs_to_rel_path(self, abs_path: str) -> str:
         """Convert an absolute filesystem path to a project-relative path."""
         return str(Path(abs_path).relative_to(self._project_root))
-
-    def _read_code_range(
-        self, abs_path: str, start_line: int, end_line: int
-    ) -> str | None:
+    
+    @staticmethod
+    def read_code_range(
+        abs_path: str, start_line: int, end_line: int
+    ) -> tuple[str, int]:
         """Read *abs_path* and return lines [*start_line*, *end_line*]
-        inclusive as a single string.
+        inclusive as a single string, plus the total line count of the
+        file.
 
-        :returns: The extracted code, or ``None`` if the file cannot be
-            read or *start_line* is out of range.
+        :returns: A tuple of (code, total_lines). *code* is empty if
+            the file cannot be read or *start_line* is out of range.
         """
         try:
             lines = Path(abs_path).read_text().splitlines()
         except OSError:
-            return None
-        end_line = min(end_line, len(lines) - 1)
-        if start_line >= len(lines):
-            return None
-        return "\n".join(lines[start_line : end_line + 1])
+            return "", 0
+        total_lines = len(lines)
+        end_line = min(end_line, total_lines - 1)
+        if start_line >= total_lines:
+            return "", total_lines
+        return "\n".join(lines[start_line : end_line + 1]), total_lines
 
     @contextmanager
     def start(self) -> Generator["LspClient", None, None]:

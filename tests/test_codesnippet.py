@@ -14,5 +14,5 @@ from smolrag.codesnippet import CodeSnippet
 )
 def test_codesnippet_str(path, start, end, source, expected_str):
     """CodeSnippet.__str__ formats as path@start:end, source."""
-    snippet = CodeSnippet(code="dummy", path=path, start_line=start, end_line=end, source=source)
+    snippet = CodeSnippet(code="dummy", path=path, start_line=start, end_line=end, total_lines=0, source=source)
     assert str(snippet) == expected_str

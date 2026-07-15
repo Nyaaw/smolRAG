@@ -101,6 +101,7 @@ def test_enrich_method_finds_containing_class(fixture_project, require_lsp):
         path="src/main/java/com/example/Cat.java",
         start_line=33,
         end_line=35,
+        total_lines=0,
         source="test fixture",
     )
 
@@ -127,6 +128,7 @@ def test_enrich_method_standalone_class_no_inheritance(fixture_project, require_
         path="src/main/java/com/example/Owner.java",
         start_line=27,
         end_line=29,
+        total_lines=0,
         source="test fixture",
     )
 
