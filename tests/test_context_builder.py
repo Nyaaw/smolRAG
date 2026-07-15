@@ -98,3 +98,41 @@ def test_build_code_fence_is_java():
     assert "```java" in result
     assert "```" in result
     assert result.count("```java") == 1
+
+
+class TestTokenLimit:
+    """The build() token budget: 80 000 tokens at 3 chars/token (240 000 chars)."""
+
+    def test_under_budget_keeps_everything(self):
+        a = _cs("AAA_MARKER " + "a" * 30_000, "a.java", 0, 0, "lsp")
+        b = _cs("BBB_MARKER " + "b" * 30_000, "b.java", 0, 0, "bm25")
+        result = ContextBuilder.build("q", [a, b])
+        assert "AAA_MARKER" in result
+        assert "BBB_MARKER" in result
+
+    def test_over_budget_drops_deepest_first(self):
+        root = _cs("ROOT_MARKER " + "r" * 150_000, "root.java", 0, 0, "lsp")
+        child = _cs("CHILD_MARKER " + "c" * 150_000, "child.java", 0, 0,
+                    "superclass or interface", parent=root)
+        child.retrieval_depth = 1
+
+        result = ContextBuilder.build("q", [root, child])
+
+        assert "ROOT_MARKER" in result
+        assert "CHILD_MARKER" not in result
+        assert "child.java" not in result
+
+    def test_over_budget_stops_cutting_once_within_budget(self):
+        root = _cs("ROOT_MARKER " + "r" * 100_000, "root.java", 0, 0, "lsp")
+        child = _cs("CHILD_MARKER " + "c" * 100_000, "child.java", 0, 0,
+                    "superclass or interface", parent=root)
+        child.retrieval_depth = 1
+        grandchild = _cs("GRAND_MARKER " + "g" * 100_000, "grand.java", 0, 0,
+                         "superclass or interface", parent=child)
+        grandchild.retrieval_depth = 2
+
+        result = ContextBuilder.build("q", [root, child, grandchild])
+
+        assert "ROOT_MARKER" in result
+        assert "CHILD_MARKER" in result
+        assert "GRAND_MARKER" not in result

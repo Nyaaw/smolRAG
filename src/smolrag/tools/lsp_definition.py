@@ -48,7 +48,7 @@ class LspDefinitionTool(LspTool):
             return f"Error: {e}"
 
         if not snippets:
-            return f"No definition found at {relative_path}:{line}:{column}."
+            return f"No definition found at {relative_path}@{line}:{column}."
 
         lines = [f"Found {len(snippets)} definition(s):"]
         for s in snippets:

@@ -39,9 +39,9 @@ class ReadTool(Tool):
     def execute(
         self, path: str, start: int | None = None, end: int | None = None
     ) -> str:
-        #TODO: prevent path traversal
-        abs_path = (Path(self.project_root) / path).resolve()
-        if not str(abs_path).startswith(str(Path(self.project_root).resolve())):
+        root = Path(self.project_root).resolve()
+        abs_path = (root / path).resolve()
+        if not abs_path.is_relative_to(root):
             return f"Error: path '{path}' escapes the project root."
 
         try:

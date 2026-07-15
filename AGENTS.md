@@ -74,22 +74,27 @@ smolRAG/
 ├── tests/                       # pytest test suite
 │   ├── __init__.py
 │   ├── conftest.py              # Shared fixtures (fixture_project, require_lsp)
-│   ├── helpers.py               # Shared test helpers (_cs, _code)
+│   ├── helpers.py               # Shared test helpers (_cs, _code, patch_prompt)
 │   ├── test_dedup.py
 │   ├── test_flatten.py
-│   ├── test_codesnippet.py
-│   ├── test_context_builder.py
+│   ├── test_codesnippet.py      # __str__, to_action_output, to_tool_output, with_line_numbers
+│   ├── test_context_builder.py  # Formatting + token-limit cut
 │   ├── e2e/
-│   │   └── test_static_e2e.py   # One test per action, calls DeepSeek API (costs money)
+│   │   ├── test_static_e2e.py   # One test per action, calls DeepSeek API (costs money)
+│   │   └── test_agent_e2e.py    # Two-turn agent session covering all 7 tools (costs money)
 │   ├── integration/
 │   │   ├── test_vector.py       # index + searchvector actions
-│   │   └── test_lsp.py          # search-lsp + explain actions (requires Java)
-│   ├── actions/
-│   │   └── test_action.py       # Stub
+│   │   ├── test_lsp.py          # search-lsp + explain actions (requires Java)
+│   │   ├── test_javaenrich.py   # JavaEnricher against real JDTLS (requires Java)
+│   │   └── test_javalspclient.py # definition_code / references_code (requires Java)
+│   ├── tools/
+│   │   ├── test_glob.py         # GlobTool patterns + path traversal guards
+│   │   ├── test_read.py         # ReadTool ranges, errors, path traversal guards
+│   │   └── test_registry.py     # list_tools() discovery + schema validity
 │   ├── lsp/
-│   │   └── test_javaenrich.py   # Stub
+│   │   └── test_lspclient.py    # read_code_range, _kind_name, URI/path helpers
 │   ├── vector/
-│   │   └── test_chunker.py      # Stub
+│   │   └── test_chunker.py      # Chunk splitting, overlap windows, skip dirs
 │   └── fixtures/
 │       └── java-sample/         # Minimal Maven project (inheritance, interfaces, pets)
 ├── pyproject.toml
@@ -162,7 +167,7 @@ Available actions:
 | `explain` | `2_explain.py` | LSP + BM25 → dedup → enrich → dedup → context |
 | `refactor-cost` | `3_reafactor_cost.py` | LSP + BM25 → enrich → references via ``references_code`` → dedup → context |
 | `debug-stacktrace` | `4_debug_stacktrace.py` | Parse stacktrace → LSP + BM25 per frame → dedup → context |
-| `debug-searchvector` | `90_searchvector.py` | BM25-only search (debug) |
+| `searchvector` | `90_searchvector.py` | BM25-only search (debug) |
 | `search-lsp` | `91_searchlsp.py` | LSP-only search (debug) |
 
 All actions end with building a contextual query and passing it to
@@ -232,7 +237,7 @@ list[CodeSnippet]`. Each language is a black box — the caller is responsible
 for deduplication before and after.
 
 **JavaEnricher** (`javaenrich.py`) enriches Java results with inheritance
-context:
+context via its ``enrich_parent`` method:
 
 - Extracts `extends`/`implements` from class declarations via regex.
 - For non-class snippets, finds the containing class via
@@ -361,8 +366,8 @@ Available tools:
 
 | Name | File | Description |
 |------|------|-------------|
-| `glob` | `glob.py` | Pattern-based file search within the project directory |
-| `read` | `read.py` | Read file contents with optional start/end line range (0-based, inclusive). Uses ``CodeSnippet.with_line_numbers`` for 1-based line numbering. |
+| `glob` | `glob.py` | Pattern-based file search confined to the project directory (path traversal is prevented) |
+| `read` | `read.py` | Read file contents with optional start/end line range (0-based, inclusive). Uses ``CodeSnippet.with_line_numbers`` for 1-based line numbering. Path traversal is prevented. |
 | `lsp-document_symbols` | `lsp_document_symbols.py` | LSP document symbols in a file (optional inline code via ``include_code``) |
 | `lsp-workspace_symbols` | `lsp_workspace_symbols.py` | LSP workspace symbol search (optional inline code via ``include_code``) |
 | `lsp-definition` | `lsp_definition.py` | LSP go-to-definition (``include_code`` defaults to ``True``) |
@@ -427,18 +432,23 @@ echo 'DEEPSEEK_API_KEY=sk-...' > ~/.config/smolrag/.env
 ## E2E tests
 
 ``tests/e2e/test_static_e2e.py`` runs each action against the fixture project,
-sends the context block to DeepSeek, and prints the response. Tests are marked
-``@pytest.mark.e2e`` and skip when ``DEEPSEEK_API_KEY`` is not set. No
-assertions — human-validated.
+sends the context block to DeepSeek, and prints the response.
+``tests/e2e/test_agent_e2e.py`` runs a two-turn agent session exercising all 7
+tools. Tests are marked ``@pytest.mark.e2e`` and skip when
+``DEEPSEEK_API_KEY`` is not set. No assertions — human-validated.
 
 ## integration tests
 
-``tests/integration/`` drives the action pipeline as a black box, monkeypatching
-``builtins.input`` and asserting on ``capsys`` output.
+``tests/integration/`` drives the action pipeline as a black box, patching
+``prompt`` via ``tests.helpers.patch_prompt`` and asserting on ``capsys`` output.
 
 - **`test_vector.py`** — index + searchvector. Always run.
 - **`test_lsp.py`** — search-lsp + explain. Marked ``@pytest.mark.lsp``,
   ``@pytest.mark.slow``. Skips when Java 17+ is not available.
+- **`test_javaenrich.py`** — JavaEnricher against real JDTLS. Marked
+  ``@pytest.mark.lsp``, ``@pytest.mark.slow``.
+- **`test_javalspclient.py`** — definition_code / references_code against
+  JDTLS. Marked ``@pytest.mark.lsp``, ``@pytest.mark.slow``.
 
 Shared fixtures in ``tests/conftest.py``:
 
@@ -484,11 +494,7 @@ testing ``debug-stacktrace``. Compile and run with:
 - JDTLS `workspace/symbol` returns ``None`` or ``[]`` when the project has
   Maven/Gradle build errors that prevent full source indexing.
 - No dense embedding support yet; BM25 sparse only.
-- `_merge_overlapping` in `dedup.py` computes overlap from line ranges, not
-  from actual code line counts. When a snippet has fewer code lines than its
-  range indicates, inner code can be silently dropped.
-- 4/9 dedup unit tests fail due to this `_merge_overlapping` bug
-  (`overlapping-multiline`, `overlap-single-line`, `overlap-chain`,
-  `overlap-mixed`).
-- `test_searchvector_no_index_shows_message` fails because ``Main.java``
-  contains the word "main", matching the test's query.
+- `_merge_overlapping` in `dedup.py` assumes a snippet's code line count
+  matches its declared line range (``end_line - start_line + 1``). Snippets
+  violating this invariant may have inner code silently dropped during merges.
+  All retrievers produce consistent snippets, so this is by design.

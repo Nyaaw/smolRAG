@@ -59,24 +59,24 @@ class TestDedupSourceAndParent:
     """Tests for source and parent inheritance during dedup merging."""
 
     def test_inherits_source_from_first(self):
-        a = _cs(_code(0, 4), "f.java", 0, 3, source="lsp")
-        b = _cs(_code(2, 6), "f.java", 2, 5, source="bm25")
+        a = _cs(_code(0, 3), "f.java", 0, 3, source="lsp")
+        b = _cs(_code(2, 5), "f.java", 2, 5, source="bm25")
         result = dedup([a, b])
         assert len(result) == 1
         assert result[0].source == "lsp"
 
     def test_inherits_parent_from_first(self):
         p = _cs("parent_code", "parent.java", 0, 0, source="parent")
-        a = _cs(_code(0, 4), "f.java", 0, 3, source="lsp", parent=p)
-        b = _cs(_code(2, 6), "f.java", 2, 5, source="bm25")
+        a = _cs(_code(0, 3), "f.java", 0, 3, source="lsp", parent=p)
+        b = _cs(_code(2, 5), "f.java", 2, 5, source="bm25")
         result = dedup([a, b])
         assert len(result) == 1
         assert result[0].parent is p
 
     def test_fixes_up_parent_references_cross_file(self):
-        parent = _cs(_code(0, 4), "parent.java", 0, 3, source="lsp")
-        parent2 = _cs(_code(2, 7), "parent.java", 2, 6, source="bm25")
-        child = _cs("child code", "child.java", 0, 1, source="superclass", parent=parent)
+        parent = _cs(_code(0, 3), "parent.java", 0, 3, source="lsp")
+        parent2 = _cs(_code(2, 6), "parent.java", 2, 6, source="bm25")
+        child = _cs("child code", "child.java", 0, 0, source="superclass", parent=parent)
 
         result = dedup([parent, parent2, child])
 
@@ -89,8 +89,8 @@ class TestDedupSourceAndParent:
 
     def test_parent_unchanged_when_not_merged(self):
         p = _cs("parent_code", "parent.java", 0, 0, source="parent")
-        a = _cs(_code(0, 4), "a.java", 0, 3, source="lsp", parent=p)
-        b = _cs(_code(5, 8), "a.java", 5, 7, source="bm25")
+        a = _cs(_code(0, 3), "a.java", 0, 3, source="lsp", parent=p)
+        b = _cs(_code(5, 7), "a.java", 5, 7, source="bm25")
 
         result = dedup([a, b])
 

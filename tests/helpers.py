@@ -11,6 +11,8 @@ def _cs(code: str, path: str, start: int, end: int, source: str = "", parent: Co
 def patch_prompt(monkeypatch, action_cls: Type, *values: str) -> None:
     """Replace ``prompt`` in *action_cls*'s module with a fake returning *values* in order.
 
+    Raises ``EOFError`` once the values are exhausted, mimicking Ctrl+D.
+
     Actions import ``prompt`` from prompt_toolkit at module level, so the
     bound name inside each action module must be patched (patching
     ``builtins.input`` or ``prompt_toolkit.prompt`` has no effect).
@@ -18,11 +20,19 @@ def patch_prompt(monkeypatch, action_cls: Type, *values: str) -> None:
     it = iter(values)
 
     def _fake_prompt(_message: str = "", **_kwargs) -> str:
-        return next(it)
+        try:
+            return next(it)
+        except StopIteration:
+            raise EOFError
 
     monkeypatch.setattr(sys.modules[action_cls.__module__], "prompt", _fake_prompt)
 
 
 def _code(start: int, end: int) -> str:
-    """Returns ``"line0\\nline1\\n...\\nline{end-1}"``."""
-    return "\n".join("line" + str(x) for x in range(start, end))
+    """Returns ``"line{start}\\nline{start+1}\\n...\\nline{end}"`` (*end* inclusive).
+
+    The line count matches a CodeSnippet range ``start_line=start,
+    end_line=end``, so snippets built with matching arguments are
+    internally consistent.
+    """
+    return "\n".join("line" + str(x) for x in range(start, end + 1))
