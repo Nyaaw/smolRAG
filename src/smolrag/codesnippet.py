@@ -43,7 +43,7 @@ class CodeSnippet:
             parts.append(self.symbol_name)
         result = " ".join(parts)
         if include_code:    
-            result += "\n" + self.code
+            result += "\n" + CodeSnippet.with_line_numbers(self.code)
         return result
 
     @staticmethod

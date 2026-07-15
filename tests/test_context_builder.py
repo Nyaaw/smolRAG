@@ -9,14 +9,14 @@ from tests.helpers import _cs
 def test_heading_no_parent():
     """Heading for a root snippet is just its string representation."""
     s = _cs("foo", "A.java", 0, 5, "LSP search 'query'")
-    assert str(s) == "A.java@0:5, source: LSP search 'query'"
+    assert str(s) == "A.java@0:5"
 
 
 def test_heading_with_parent():
     """Heading for an enrichment child includes a reference to the parent."""
     parent = _cs("base", "A.java", 0, 5, "LSP search 'query'")
     child = _cs("derived", "B.java", 10, 15, "superclass or interface", parent=parent)
-    assert str(child) == "B.java@10:15, source: superclass or interface of A.java@0:5, source: LSP search 'query'"
+    assert str(child) == "B.java@10:15"
 
 
 def test_build_empty_snippets():
@@ -35,7 +35,7 @@ def test_build_single_snippet():
     result = ContextBuilder.build("Explain Main", [s])
 
     assert "## Explain Main" in result
-    assert "### Main.java@0:1, source: LSP search 'Main'" in result
+    assert "### Main.java (0 lines)@0:1, source: LSP search 'Main'" in result
     assert "```java\nint x = 1;\n```" in result
 
 
@@ -48,8 +48,8 @@ def test_build_multiple_snippets():
     result = ContextBuilder.build("Explain all", [a, b, c])
 
     assert result.count("```java") == 3
-    assert result.index("### A.java@0:1") < result.index("### B.java@5:6")
-    assert result.index("### B.java@5:6") < result.index("### C.java@10:11")
+    assert result.index("### A.java (0 lines)@0:1") < result.index("### B.java (0 lines)@5:6")
+    assert result.index("### B.java (0 lines)@5:6") < result.index("### C.java (0 lines)@10:11")
 
 
 def test_build_with_parent_child():
@@ -60,8 +60,8 @@ def test_build_with_parent_child():
 
     result = ContextBuilder.build("Explain Animal", [parent, child])
 
-    assert "### Animal.java@0:5, source: LSP search 'Animal'" in result
-    assert "### Mammal.java@0:3, source: superclass or interface of Animal.java@0:5, source: LSP search 'Animal'" in result
+    assert "### Animal.java (0 lines)@0:5, source: LSP search 'Animal'" in result
+    assert "### Mammal.java (0 lines)@0:3, source: superclass or interface of Animal.java@0:5" in result
     pos_parent = result.index("class Animal {}")
     pos_child = result.index("class Mammal")
     assert pos_parent < pos_child

@@ -254,6 +254,7 @@ class CodeSnippet:
     path: str        # Relative path to project root
     start_line: int  # 0-based
     end_line: int    # 0-based, inclusive
+    total_lines: int # Total lines in the source file
     source: str      # Describes where/how this snippet was retrieved
     parent: CodeSnippet | None = None  # Enrichment/reference origin (None for top-level)
     retrieval_depth: int = 0  # Distance from a direct retrieval root
@@ -261,20 +262,29 @@ class CodeSnippet:
     symbol_kind: str | None = None  # LSP symbol kind (e.g. "method", "class")
 
     def __str__(self) -> str:
-        base = f"{self.path}@{self.start_line}:{self.end_line}, source: {self.source}"
-        if self.parent is not None:
-            base += f" of {self.parent}"
-        return base
+        return f"{self.path}@{self.start_line}:{self.end_line}"
+
+    def to_action_output(self) -> str:
+        ...
 
     def to_tool_output(self, include_code: bool = False) -> str:
         ...
+
+    @staticmethod
+    def with_line_numbers(code: str) -> str:
+        ...
 ```
 
-``__str__`` is used by ``ContextBuilder`` for snippet headings. ``to_tool_output()``
-is a compact representation for LLM tool responses: a single header line
-(``path@start:end`` followed by optional ``symbol_kind`` and ``symbol_name``)
-with optional code appended below when ``include_code=True``. Default is
-``False`` to keep responses small.
+``__str__`` is used by ``ContextBuilder`` for snippet headings. ``to_action_output()``
+is used by actions to produce heading lines with file path, total lines, line range,
+source, and optional parent. ``to_tool_output()`` is a compact representation for
+LLM tool responses: a single header line (``path (N lines)@start:end`` followed by
+optional ``symbol_kind`` and ``symbol_name``) with optional code appended below
+when ``include_code=True``. Default is ``False`` to keep responses small.
+
+``with_line_numbers(code)`` is a static utility that prepends each line of
+*code* with its 1-based line number followed by a space. Used by ``ReadTool``
+to produce line-numbered output.
 
 Source strings:
 
@@ -307,8 +317,8 @@ Internally, ``_flatten()`` reorders snippets into depth-first order using
 ``parent`` references, so enrichment children immediately follow their parent.
 ``build()`` then applies a token limit (80 000 tokens, 3 chars = 1 token),
 dropping deepest snippets first based on ``retrieval_depth``. Output: system
-prompt, query heading, snippet headings (``str(snippet)``), and `` ```java ``
-code fences.
+prompt, query heading, snippet headings (``snippet.to_action_output()``), and
+`` ```java `` code fences.
 
 ### Logging
 
@@ -352,7 +362,7 @@ Available tools:
 | Name | File | Description |
 |------|------|-------------|
 | `glob` | `glob.py` | Pattern-based file search within the project directory |
-| `read` | `read.py` | Read file contents with optional start/end line range (0-based, inclusive) |
+| `read` | `read.py` | Read file contents with optional start/end line range (0-based, inclusive). Uses ``CodeSnippet.with_line_numbers`` for 1-based line numbering. |
 | `lsp-document_symbols` | `lsp_document_symbols.py` | LSP document symbols in a file (optional inline code via ``include_code``) |
 | `lsp-workspace_symbols` | `lsp_workspace_symbols.py` | LSP workspace symbol search (optional inline code via ``include_code``) |
 | `lsp-definition` | `lsp_definition.py` | LSP go-to-definition (``include_code`` defaults to ``True``) |

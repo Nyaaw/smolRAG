@@ -81,7 +81,7 @@ class ContextBuilder:
             "",
         ]
         for s in kept:
-            parts.append(f"### {s}")
+            parts.append(f"### {s.to_action_output()}")
             parts.append("")
             parts.append("```java")
             parts.append(s.code)
