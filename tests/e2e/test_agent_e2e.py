@@ -11,7 +11,7 @@ QUERY_EXPLORE = (
     "and show its content from the start to line 27."
 )
 QUERY_LSP_TOOLS = (
-    "Check all the 5 LSP tools you have at your disposition with this class. "
+    "Check all the 5 LSP tools you have at your disposal with this class. "
     "Show the results and report if any tool responded weirdly."
 )
 

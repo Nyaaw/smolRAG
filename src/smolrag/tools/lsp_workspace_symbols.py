@@ -35,15 +35,7 @@ class LspWorkspaceSymbolsTool(LspTool):
         if not snippets:
             return f"No symbols found for '{query}'."
 
-        seen: set[tuple] = set()
-        unique: list = []
+        lines = [f"Found {len(snippets)} symbols:"]
         for s in snippets:
-            key = (s.path, s.start_line, s.end_line)
-            if key not in seen:
-                seen.add(key)
-                unique.append(s)
-
-        lines = [f"Found {len(unique)} symbols:"]
-        for s in unique:
             lines.append(s.to_tool_output(include_code))
         return "\n".join(lines)

@@ -77,7 +77,7 @@ class JavaLSPClient(LspClient):
                             best = ds
                             best_size = size
 
-                if best is not None:
+                if best is not None and best not in snippets:
                     best.source = f"LSP workspace search '{query}'"
                     best.symbol_name = r.get("name", best.symbol_name)
                     kind_name = self._kind_name(r.get("kind"))
@@ -94,31 +94,57 @@ class JavaLSPClient(LspClient):
         if not results:
             return []
 
-        snippets: list[CodeSnippet] = []
+        by_file: dict[str, list[dict]] = {}
         for r in results:
             uri = r.get("uri", "")
             abs_path = self._uri_to_abs_path(uri)
             if abs_path is None:
                 continue
+            rel_path = self._abs_to_rel_path(abs_path)
+            by_file.setdefault(rel_path, []).append(r)
 
-            rng = r.get("range", {})
-            start_line = rng.get("start", {}).get("line", 0)
-            end_line = rng.get("end", {}).get("line", 0)
+        snippets: list[CodeSnippet] = []
+        for rel_path, def_results in by_file.items():
+            doc_snippets = self.document_symbols_code(rel_path)
 
-            code, end_line, total_lines = LspClient.read_code_range(abs_path, start_line, end_line)
-            if not code:
-                continue
+            for r in def_results:
+                rng = r.get("range", {})
+                r_line = rng.get("start", {}).get("line", 0)
 
-            snippets.append(
-                CodeSnippet(
-                    code=code,
-                    path=self._abs_to_rel_path(abs_path),
-                    start_line=start_line,
-                    end_line=end_line,
-                    total_lines=total_lines,
-                    source="LSP definition",
-                )
-            )
+                best: CodeSnippet | None = None
+                best_size: int = 0
+                for ds in doc_snippets:
+                    if ds.start_line <= r_line <= ds.end_line:
+                        size = ds.end_line - ds.start_line
+                        if best is None or size < best_size:
+                            best = ds
+                            best_size = size
+
+                if best is not None and best not in snippets:
+                    best.source = "LSP definition"
+                    snippets.append(best)
+                else:
+                    abs_path = self._uri_to_abs_path(
+                        r.get("uri", "")
+                    )
+                    if abs_path is None:
+                        continue
+                    end_line = rng.get("end", {}).get("line", 0)
+                    code, end_line, total_lines = LspClient.read_code_range(
+                        abs_path, r_line, end_line
+                    )
+                    if not code:
+                        continue
+                    snippet = CodeSnippet(
+                        code=code,
+                        path=rel_path,
+                        start_line=r_line,
+                        end_line=end_line,
+                        total_lines=total_lines,
+                        source="LSP definition",
+                    )
+                    if snippet not in snippets:
+                        snippets.append(snippet)
 
         return snippets
 
@@ -129,31 +155,57 @@ class JavaLSPClient(LspClient):
         if not results:
             return []
 
-        snippets: list[CodeSnippet] = []
+        by_file: dict[str, list[dict]] = {}
         for r in results:
             uri = r.get("uri", "")
             abs_path = self._uri_to_abs_path(uri)
             if abs_path is None:
                 continue
+            rel_path = self._abs_to_rel_path(abs_path)
+            by_file.setdefault(rel_path, []).append(r)
 
-            rng = r.get("range", {})
-            start_line = rng.get("start", {}).get("line", 0)
-            end_line = rng.get("end", {}).get("line", 0)
+        snippets: list[CodeSnippet] = []
+        for rel_path, ref_results in by_file.items():
+            doc_snippets = self.document_symbols_code(rel_path)
 
-            code, end_line, total_lines = LspClient.read_code_range(abs_path, start_line, end_line)
-            if not code:
-                continue
+            for r in ref_results:
+                rng = r.get("range", {})
+                r_line = rng.get("start", {}).get("line", 0)
 
-            snippets.append(
-                CodeSnippet(
-                    code=code,
-                    path=self._abs_to_rel_path(abs_path),
-                    start_line=start_line,
-                    end_line=end_line,
-                    total_lines=total_lines,
-                    source="LSP reference",
-                )
-            )
+                best: CodeSnippet | None = None
+                best_size: int = 0
+                for ds in doc_snippets:
+                    if ds.start_line <= r_line <= ds.end_line:
+                        size = ds.end_line - ds.start_line
+                        if best is None or size < best_size:
+                            best = ds
+                            best_size = size
+
+                if best is not None and best not in snippets:
+                    best.source = "LSP reference"
+                    snippets.append(best)
+                else:
+                    abs_path = self._uri_to_abs_path(
+                        r.get("uri", "")
+                    )
+                    if abs_path is None:
+                        continue
+                    end_line = rng.get("end", {}).get("line", 0)
+                    code, end_line, total_lines = LspClient.read_code_range(
+                        abs_path, r_line, end_line
+                    )
+                    if not code:
+                        continue
+                    snippet = CodeSnippet(
+                        code=code,
+                        path=rel_path,
+                        start_line=r_line,
+                        end_line=end_line,
+                        total_lines=total_lines,
+                        source="LSP reference",
+                    )
+                    if snippet not in snippets:
+                        snippets.append(snippet)
 
         return snippets
 
