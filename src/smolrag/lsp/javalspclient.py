@@ -25,7 +25,7 @@ class JavaLSPClient(LspClient):
             rng = r.get("range", {})
             start_line = rng.get("start", {}).get("line", 0)
             end_line = rng.get("end", {}).get("line", 0)
-            code, total_lines = LspClient.read_code_range(abs_path, start_line, end_line)
+            code, end_line, total_lines = LspClient.read_code_range(abs_path, start_line, end_line)
             if not code:
                 continue
             snippets.append(
@@ -105,7 +105,7 @@ class JavaLSPClient(LspClient):
             start_line = rng.get("start", {}).get("line", 0)
             end_line = rng.get("end", {}).get("line", 0)
 
-            code, total_lines = LspClient.read_code_range(abs_path, start_line, end_line)
+            code, end_line, total_lines = LspClient.read_code_range(abs_path, start_line, end_line)
             if not code:
                 continue
 
@@ -140,7 +140,7 @@ class JavaLSPClient(LspClient):
             start_line = rng.get("start", {}).get("line", 0)
             end_line = rng.get("end", {}).get("line", 0)
 
-            code, total_lines = LspClient.read_code_range(abs_path, start_line, end_line)
+            code, end_line, total_lines = LspClient.read_code_range(abs_path, start_line, end_line)
             if not code:
                 continue
 

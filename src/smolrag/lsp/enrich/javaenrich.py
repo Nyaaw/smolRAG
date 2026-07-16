@@ -116,7 +116,7 @@ class JavaEnricher(LanguageEnricher):
                 area = (sym_end - sym_start) * (sym_end - sym_start)
                 if area < parent_area:
                     parent_area = area
-                    code, total_lines = LspClient.read_code_range(
+                    code, sym_end, total_lines = LspClient.read_code_range(
                         abs_path, sym_start, sym_end
                     )
                     if not code:

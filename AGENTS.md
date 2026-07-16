@@ -183,8 +183,13 @@ file-I/O helpers and utility methods:
   absolute filesystem path.
 - ``_abs_to_rel_path(abs_path) -> str`` — converts an absolute path to a
   project-relative path.
-- ``read_code_range(abs_path, start_line, end_line) -> tuple[str, int]`` — static method; reads
-  lines [*start_line*, *end_line*] inclusive from disk and returns (code, total_lines).
+- ``read_code_range(abs_path, start_line, end_line) -> tuple[str, int, int]`` — static method;
+  reads lines [*start_line*, *end_line*] inclusive from disk and returns
+  (code, end_line, total_lines). The returned *end_line* is clamped to the
+  last line of the file, so a snippet built from it always satisfies
+  ``len(code.splitlines()) == end_line - start_line + 1``, even when the LSP
+  server reports a range past EOF. All callers must store the returned
+  *end_line*, not the raw LSP value.
 - ``_kind_name(kind) -> str | None`` — static method; maps an LSP SymbolKind
   integer to a lowercase name via ``lsprotocol.types.SymbolKind`` (e.g.
   ``5`` → ``"class"``). Returns ``None`` for unknown or ``None`` inputs.
@@ -499,4 +504,8 @@ testing ``debug-stacktrace``. Compile and run with:
 - `_merge_overlapping` in `dedup.py` assumes a snippet's code line count
   matches its declared line range (``end_line - start_line + 1``). Snippets
   violating this invariant may have inner code silently dropped during merges.
-  All retrievers produce consistent snippets, so this is by design.
+  The invariant is enforced at the LSP boundary: ``read_code_range`` returns
+  the effective (clamped) end line and all callers store it. The chunker and
+  vector retriever produce consistent snippets by construction.
+- LSP ``Range.end`` is character-exclusive; when ``end.character == 0`` the
+  snippet may include one extra trailing line. Accepted as harmless.

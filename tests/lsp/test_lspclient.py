@@ -15,25 +15,31 @@ class TestReadCodeRange:
     def test_reads_inclusive_range(self, tmp_path):
         f = tmp_path / "f.txt"
         f.write_text("a\nb\nc\nd\n")
-        assert LspClient.read_code_range(str(f), 1, 2) == ("b\nc", 4)
+        assert LspClient.read_code_range(str(f), 1, 2) == ("b\nc", 2, 4)
 
     def test_reads_single_line(self, tmp_path):
         f = tmp_path / "f.txt"
         f.write_text("a\nb\nc\n")
-        assert LspClient.read_code_range(str(f), 1, 1) == ("b", 3)
+        assert LspClient.read_code_range(str(f), 1, 1) == ("b", 1, 3)
 
     def test_end_clamped_to_file_length(self, tmp_path):
         f = tmp_path / "f.txt"
         f.write_text("a\nb\n")
-        assert LspClient.read_code_range(str(f), 0, 99) == ("a\nb", 2)
+        assert LspClient.read_code_range(str(f), 0, 99) == ("a\nb", 1, 2)
+
+    def test_clamped_end_preserves_line_count_invariant(self, tmp_path):
+        f = tmp_path / "f.txt"
+        f.write_text("a\nb\nc\n")
+        code, end_line, _ = LspClient.read_code_range(str(f), 1, 42)
+        assert len(code.splitlines()) == end_line - 1 + 1
 
     def test_start_out_of_range_returns_empty_with_total(self, tmp_path):
         f = tmp_path / "f.txt"
         f.write_text("a\nb\n")
-        assert LspClient.read_code_range(str(f), 5, 9) == ("", 2)
+        assert LspClient.read_code_range(str(f), 5, 9) == ("", 9, 2)
 
     def test_missing_file_returns_empty(self, tmp_path):
-        assert LspClient.read_code_range(str(tmp_path / "nope.txt"), 0, 1) == ("", 0)
+        assert LspClient.read_code_range(str(tmp_path / "nope.txt"), 0, 1) == ("", 1, 0)
 
 
 class TestKindName:

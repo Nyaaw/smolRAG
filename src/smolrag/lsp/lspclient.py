@@ -119,23 +119,29 @@ class LspClient(ABC):
     @staticmethod
     def read_code_range(
         abs_path: str, start_line: int, end_line: int
-    ) -> tuple[str, int]:
+    ) -> tuple[str, int, int]:
         """Read *abs_path* and return lines [*start_line*, *end_line*]
-        inclusive as a single string, plus the total line count of the
-        file.
+        inclusive as a single string, plus the effective end line and the
+        total line count of the file.
 
-        :returns: A tuple of (code, total_lines). *code* is empty if
-            the file cannot be read or *start_line* is out of range.
+        *end_line* is clamped to the last line of the file, so the
+        returned end line always satisfies
+        ``len(code.splitlines()) == end_line - start_line + 1``. This
+        guards against LSP servers reporting ranges past EOF.
+
+        :returns: A tuple of (code, end_line, total_lines). *code* is
+            empty if the file cannot be read or *start_line* is out of
+            range; in that case *end_line* is returned unchanged.
         """
         try:
             lines = Path(abs_path).read_text().splitlines()
         except OSError:
-            return "", 0
+            return "", end_line, 0
         total_lines = len(lines)
-        end_line = min(end_line, total_lines - 1)
         if start_line >= total_lines:
-            return "", total_lines
-        return "\n".join(lines[start_line : end_line + 1]), total_lines
+            return "", end_line, total_lines
+        end_line = min(end_line, total_lines - 1)
+        return "\n".join(lines[start_line : end_line + 1]), end_line, total_lines
 
     @contextmanager
     def start(self) -> Generator["LspClient", None, None]:
