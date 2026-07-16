@@ -10,7 +10,7 @@ class LspHoverTool(LspTool):
     description = (
         "Get hover documentation, type information, and signature "
         "for the symbol at the given file, line, and column. "
-        "Returns a text string with the hover contents (truncated to ${_MAX_CHARS} characters)."
+        f"Returns a text string with the hover contents (truncated to ${_MAX_CHARS} characters)."
     )
     parameters = {
         "type": "object",

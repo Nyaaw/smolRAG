@@ -1,7 +1,7 @@
 [project]
 name = "smolrag"
-version = "0.1.0"
-description = "Add your description here"
+version = "1.0.0"
+description = "Local code retrieval tool combining LSP analysis and BM25 indexing for large codebases"
 readme = "README.md"
 authors = [
     { name = "Nyaaw", email = "cactus318@hotmail.fr" }

@@ -45,7 +45,7 @@ def _get_cache_root() -> Path:
 def _get_storage_dir(project_root: str) -> str:
     """Return the Qdrant storage directory for a project.
 
-    Uses ``{cache_root}/smolrag/qdrant/{basename}_{hash[:8]}/``
+    Uses ``{cache_root}/qdrant/{basename}_{hash[:8]}/``
     where the hash is SHA-256 of the resolved project path for
     disambiguation between projects with the same basename.
     """

@@ -40,6 +40,9 @@ smolRAG/
 │   ├── config.py                # DeepSeek API config: loads ~/.config/smolrag/.env via python-dotenv
 │   ├── context_builder.py       # ContextBuilder: flatten, token-limited format for LLMs
 │   ├── dedup.py                 # dedup(): merges overlapping CodeSnippet ranges
+│   ├── prompts/                 # Prompt text files loaded at import time
+│   │   ├── agent_system.txt     # System prompt for the agentic loop (agent.py)
+│   │   └── context_builder_system.txt # System prompt prepended by ContextBuilder
 │   ├── tools/                   # Agent tools (auto-discovered by __init__.py)
 │   │   ├── __init__.py          # Auto-scans for Tool subclasses
 │   │   ├── tool.py              # Abstract Tool and LspTool base classes
@@ -56,7 +59,7 @@ smolRAG/
 │   │   ├── 1_index.py           # IndexAction: chunk project, build Qdrant BM25 index
 │   │   ├── 2_explain.py         # ExplainHybridAction: LSP + inheritance enrich + BM25
 │   │   ├── 3_reafactor_cost.py  # RefactorCostAction: LSP + references + enrich + BM25
-│   │   ├── 4_debug_stacktrace.py # DebugStacktraceAction: parse stacktrace, retrieve each frame
+│   │   ├── 4_debug_stacktrace.py # DebugStacktraceAction: parse stacktrace, retrieve per unique class name
 │   │   ├── 90_searchvector.py   # SearchVectorAction: BM25-only search
 │   │   └── 91_searchlsp.py      # SearchLspAction: LSP-only search
 │   ├── lsp/                     # LSP integration sub-package
@@ -65,7 +68,7 @@ smolRAG/
 │   │   ├── javalspclient.py     # JavaLSPClient: 4 CodeSnippet-returning LSP methods + hover/completions
 │   │   └── enrich/              # Language-specific enrichers
 │   │       ├── __init__.py      # Exports LanguageEnricher, JavaEnricher
-│   │       ├── enrich.py        # LanguageEnricher ABC: single abstract enrich()
+│   │       ├── enrich.py        # LanguageEnricher ABC: single abstract enrich_parent()
 │   │       └── javaenrich.py    # JavaEnricher: inheritance context via LSP
 │   └── vector/                  # Vector retrieval sub-package
 │       ├── __init__.py          # Exports QdrantIndexer, QdrantRetriever, CodeChunker
@@ -86,7 +89,7 @@ smolRAG/
 │   │   ├── test_vector.py       # index + searchvector actions
 │   │   ├── test_lsp.py          # search-lsp + explain actions (requires Java)
 │   │   ├── test_javaenrich.py   # JavaEnricher against real JDTLS (requires Java)
-│   │   └── test_javalspclient.py # definition_code / references_code (requires Java)
+│   │   └── test_javalspclient.py # definition_code / references_code, no-duplicates check (requires Java)
 │   ├── tools/
 │   │   ├── test_glob.py         # GlobTool patterns + path traversal guards
 │   │   ├── test_read.py         # ReadTool ranges, errors, path traversal guards
@@ -166,7 +169,7 @@ Available actions:
 | `index` | `1_index.py` | Walk project, chunk, embed BM25 into local Qdrant |
 | `explain` | `2_explain.py` | LSP + BM25 → dedup → enrich → dedup → context |
 | `refactor-cost` | `3_reafactor_cost.py` | LSP + BM25 → enrich → references via ``references_code`` → dedup → context |
-| `debug-stacktrace` | `4_debug_stacktrace.py` | Parse stacktrace → LSP + BM25 per frame → dedup → context |
+| `debug-stacktrace` | `4_debug_stacktrace.py` | Parse stacktrace → LSP + BM25 per unique class name → dedup → context |
 | `searchvector` | `90_searchvector.py` | BM25-only search (debug) |
 | `search-lsp` | `91_searchlsp.py` | LSP-only search (debug) |
 
@@ -215,6 +218,12 @@ Four methods return ``list[CodeSnippet]`` with source code; ``hover`` and
 - ``references_code(rel_path, line, col)`` — all references to the symbol at
   the given position
 
+``workspace_symbols_code``, ``definition_code``, and ``references_code``
+deduplicate their results via deep equality (``snippet not in snippets``,
+dataclass ``__eq__``), not ``id()``. This also covers fallback snippets built
+from raw LSP ranges, e.g. two references on the same line
+(``Cat cat = (Cat) pet;``) collapse into one snippet.
+
 **Known LSP quirks**:
 - JDTLS `workspace/symbol` does camel-case prefix matching (e.g. `"OutputRed"`
   finds `OutputRedirector`, but `"redirector"` does not). Use BM25 fallback for
@@ -223,23 +232,23 @@ Four methods return ``list[CodeSnippet]`` with source code; ``hover`` and
 **Vector (`src/smolrag/vector/`)**: BM25 sparse retrieval via Qdrant local mode
 (SQLite-backed, no server needed) + fastembed `Qdrant/bm25` model.
 
-- **Chunker** (`chunker.py`): walks the project via `rglob("*")`, skips 17
+- **Chunker** (`chunker.py`): walks the project via `rglob("*")`, skips 16
   known build/vcs/tool dirs, detects text files via null-byte check (first 8KB),
   skips files >10MB and empty files. Chunks files ≤1000 lines as one snippet,
   splits larger files into 1000-line chunks with 100-line overlap.
 - **QdrantIndexer** (`qdrant_client.py`): chunks project, embeds with BM25
   sparse vectors, stores in local Qdrant collection at
-  ``{cache_root}/smolrag/qdrant/{basename}_{hash[:8]}/`` (overridable via
-  ``SMOLRAG_CACHE_DIR``).
+  ``{cache_root}/qdrant/{basename}_{hash[:8]}/`` where ``cache_root`` is
+  ``SMOLRAG_CACHE_DIR`` if set, else ``platformdirs.user_cache_dir("smolrag")``.
 - **QdrantRetriever** (`qdrant_client.py`): embeds query, searches collection,
   returns `list[CodeSnippet]`.
 - Shared ``QdrantClient`` instance, closed at exit via ``atexit``.
 
 ### Language enrichers (`src/smolrag/lsp/enrich/`)
 
-The `LanguageEnricher` ABC defines a single abstract method `enrich(snippets) ->
-list[CodeSnippet]`. Each language is a black box — the caller is responsible
-for deduplication before and after.
+The `LanguageEnricher` ABC defines a single abstract method
+`enrich_parent(snippets) -> list[CodeSnippet]`. Each language is a black box —
+the caller is responsible for deduplication before and after.
 
 **JavaEnricher** (`javaenrich.py`) enriches Java results with inheritance
 context via its ``enrich_parent`` method:
@@ -251,7 +260,7 @@ context via its ``enrich_parent`` method:
   their code, prepending it before the matched snippet.
 
 To add a new language, drop a `*enricher.py` file in `lsp/enrich/` with a class
-that extends `LanguageEnricher` and implements `enrich()`.
+that extends `LanguageEnricher` and implements `enrich_parent()`.
 
 ### CodeSnippet (unified result type)
 
@@ -455,7 +464,8 @@ tools. Tests are marked ``@pytest.mark.e2e`` and skip when
 - **`test_javaenrich.py`** — JavaEnricher against real JDTLS. Marked
   ``@pytest.mark.lsp``, ``@pytest.mark.slow``.
 - **`test_javalspclient.py`** — definition_code / references_code against
-  JDTLS. Marked ``@pytest.mark.lsp``, ``@pytest.mark.slow``.
+  JDTLS, including a no-duplicates check on references_code. Marked
+  ``@pytest.mark.lsp``, ``@pytest.mark.slow``.
 
 Shared fixtures in ``tests/conftest.py``:
 
