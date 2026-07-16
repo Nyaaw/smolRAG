@@ -13,7 +13,7 @@ class ReadTool(Tool):
         "Optionally specify a line range with start (inclusive) and end (inclusive), "
         "both 0-based. If start is omitted, reading starts from the beginning. "
         "If end is omitted, reading goes to the end of the file. "
-        "Line numbers are included in the output."
+        "Output lines are prefixed with their absolute 0-based line numbers."
     )
     parameters = {
         "type": "object",
@@ -69,4 +69,4 @@ class ReadTool(Tool):
             end_line = len(lines) - 1
 
         selected = "".join(lines[start_line : end_line + 1]).rstrip("\n")
-        return CodeSnippet.with_line_numbers(selected)
+        return CodeSnippet.with_line_numbers(selected, start_line)

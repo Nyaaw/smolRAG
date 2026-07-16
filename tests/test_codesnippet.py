@@ -46,21 +46,22 @@ def test_to_tool_output_with_symbol_metadata():
 
 
 def test_to_tool_output_include_code():
-    """include_code=True appends line-numbered code below the header."""
-    s = CodeSnippet(code="a\nb", path="Foo.java", start_line=0, end_line=1, total_lines=2, source="LSP")
-    assert s.to_tool_output(include_code=True) == "Foo.java (2 lines)@0:1\n1 a\n2 b"
+    """include_code=True appends code numbered from the snippet's start_line."""
+    s = CodeSnippet(code="a\nb", path="Foo.java", start_line=4, end_line=5, total_lines=10, source="LSP")
+    assert s.to_tool_output(include_code=True) == "Foo.java (10 lines)@4:5\n4 a\n5 b"
 
 
 @pytest.mark.parametrize(
-    "code, expected",
+    "code, start_line, expected",
     [
-        ("", ""),
-        ("single", "1 single"),
-        ("a\nb\nc", "1 a\n2 b\n3 c"),
-        ("x\n\ny", "1 x\n2 \n3 y"),
+        ("", 0, ""),
+        ("single", 0, "0 single"),
+        ("a\nb\nc", 0, "0 a\n1 b\n2 c"),
+        ("a\nb\nc", 10, "10 a\n11 b\n12 c"),
+        ("x\n\ny", 3, "3 x\n4 \n5 y"),
     ],
-    ids=["empty", "single-line", "multi-line", "blank-line"],
+    ids=["empty", "single-line", "multi-line", "offset", "blank-line"],
 )
-def test_with_line_numbers(code, expected):
-    """with_line_numbers prepends 1-based line numbers to each line."""
-    assert CodeSnippet.with_line_numbers(code) == expected
+def test_with_line_numbers(code, start_line, expected):
+    """with_line_numbers prepends absolute 0-based line numbers starting at start_line."""
+    assert CodeSnippet.with_line_numbers(code, start_line) == expected

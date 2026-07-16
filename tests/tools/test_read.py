@@ -14,13 +14,13 @@ def project(tmp_path):
 
 
 def test_read_whole_file(project):
-    """No range reads the whole file with 1-based line numbers."""
+    """No range reads the whole file with absolute 0-based line numbers."""
     out = ReadTool(str(project)).execute(path="src/File.java")
-    assert out == "1 l0\n2 l1\n3 l2\n4 l3\n5 l4"
+    assert out == "0 l0\n1 l1\n2 l2\n3 l3\n4 l4"
 
 
 def test_read_line_range(project):
-    """start/end are 0-based inclusive; numbering restarts at 1."""
+    """start/end are 0-based inclusive; numbering is absolute to the file."""
     out = ReadTool(str(project)).execute(path="src/File.java", start=1, end=3)
     assert out == "1 l1\n2 l2\n3 l3"
 
@@ -28,13 +28,13 @@ def test_read_line_range(project):
 def test_read_start_only(project):
     """Omitting end reads to the end of the file."""
     out = ReadTool(str(project)).execute(path="src/File.java", start=3)
-    assert out == "1 l3\n2 l4"
+    assert out == "3 l3\n4 l4"
 
 
 def test_read_end_clamped(project):
     """An end past EOF is clamped instead of erroring."""
     out = ReadTool(str(project)).execute(path="src/File.java", start=4, end=99)
-    assert out == "1 l4"
+    assert out == "4 l4"
 
 
 def test_read_start_out_of_range(project):

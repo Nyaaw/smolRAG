@@ -7,7 +7,6 @@ from dataclasses import dataclass
 class CodeSnippet:
     """Unified result from any retrieval method (LSP, BM25, embeddings, etc.)."""
 
-    #TODO: include line numbers if the LLMs struggle with counting lines
     code: str
     path: str
     start_line: int
@@ -43,10 +42,12 @@ class CodeSnippet:
             parts.append(self.symbol_name)
         result = " ".join(parts)
         if include_code:    
-            result += "\n" + CodeSnippet.with_line_numbers(self.code)
+            result += "\n" + CodeSnippet.with_line_numbers(self.code, self.start_line)
         return result
 
     @staticmethod
-    def with_line_numbers(code: str) -> str:
-        """Prepend each line of *code* with its 1-based line number followed by a space."""
-        return "\n".join(f"{i + 1} {line}" for i, line in enumerate(code.splitlines()))
+    def with_line_numbers(code: str, start_line: int) -> str:
+        """Prepend each line of *code* with its absolute 0-based line number
+        in the source file, starting at *start_line*, followed by a space.
+        """
+        return "\n".join(f"{start_line + i} {line}" for i, line in enumerate(code.splitlines()))

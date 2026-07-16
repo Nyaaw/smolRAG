@@ -276,7 +276,7 @@ class CodeSnippet:
         ...
 
     @staticmethod
-    def with_line_numbers(code: str) -> str:
+    def with_line_numbers(code: str, start_line: int) -> str:
         ...
 ```
 
@@ -287,9 +287,11 @@ LLM tool responses: a single header line (``path (N lines)@start:end`` followed 
 optional ``symbol_kind`` and ``symbol_name``) with optional code appended below
 when ``include_code=True``. Default is ``False`` to keep responses small.
 
-``with_line_numbers(code)`` is a static utility that prepends each line of
-*code* with its 1-based line number followed by a space. Used by ``ReadTool``
-to produce line-numbered output.
+``with_line_numbers(code, start_line)`` is a static utility that prepends each
+line of *code* with its absolute 0-based line number in the source file,
+starting at *start_line*. Used by ``ReadTool`` and ``to_tool_output()`` to
+produce line-numbered output. All line and column numbers across the project
+are 0-based, matching LSP conventions.
 
 Source strings:
 
@@ -367,7 +369,7 @@ Available tools:
 | Name | File | Description |
 |------|------|-------------|
 | `glob` | `glob.py` | Pattern-based file search confined to the project directory (path traversal is prevented) |
-| `read` | `read.py` | Read file contents with optional start/end line range (0-based, inclusive). Uses ``CodeSnippet.with_line_numbers`` for 1-based line numbering. Path traversal is prevented. |
+| `read` | `read.py` | Read file contents with optional start/end line range (0-based, inclusive). Uses ``CodeSnippet.with_line_numbers`` for absolute 0-based line numbering. Path traversal is prevented. |
 | `lsp-document_symbols` | `lsp_document_symbols.py` | LSP document symbols in a file (optional inline code via ``include_code``) |
 | `lsp-workspace_symbols` | `lsp_workspace_symbols.py` | LSP workspace symbol search (optional inline code via ``include_code``) |
 | `lsp-definition` | `lsp_definition.py` | LSP go-to-definition (``include_code`` defaults to ``True``) |
