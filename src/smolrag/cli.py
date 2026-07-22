@@ -30,7 +30,7 @@ def main() -> None:
         mode_choice = choice("What would you like to do ?", options=[
             ("static", "static: prepare a prompt to copy/paste in your favorite LLM chat"),
             ("agent", "agentic: connect to an agentic LLM and let it decide what to do on your codebase"),
-            ("config", "configuration options")
+            #"config", "configuration options")
         ])
         print()
 

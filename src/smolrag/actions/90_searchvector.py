@@ -8,7 +8,7 @@ from smolrag.context_builder import ContextBuilder
 class SearchVectorAction(Action):
     """Search the BM25 index for code snippets matching a query."""
 
-    name = "searchvector"
+    name = "search-vector"
     description = "DEBUG: Tests the vector search"
 
     def run(self) -> None:

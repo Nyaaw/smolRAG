@@ -58,9 +58,9 @@ class RefactorCostAction(Action):
             return
 
         context_query = (
-            "Evaluate the refactoring cost of the following refactoring query "
+            "## Evaluate the refactoring cost of the following refactoring query. "
             "Don't write new code yet, only describe the refactoring plan and the impact "
-            "on the rest of the codebase. "
-            f"Refactor action: {refactor}\nTarget symbol: {target}"
+            "on the rest of the codebase."
+            f"\n## Refactor action: {refactor}\n## Target symbol: {target}"
         )
         print(ContextBuilder.build(context_query, all_snippets))

@@ -60,7 +60,7 @@ smolRAG/
 │   │   ├── 2_explain.py         # ExplainHybridAction: LSP + inheritance enrich + BM25
 │   │   ├── 3_reafactor_cost.py  # RefactorCostAction: LSP + references + enrich + BM25
 │   │   ├── 4_debug_stacktrace.py # DebugStacktraceAction: parse stacktrace, retrieve per unique class name
-│   │   ├── 90_searchvector.py   # SearchVectorAction: BM25-only search
+│   │   ├── 90_search-vector.py   # SearchVectorAction: BM25-only search
 │   │   └── 91_searchlsp.py      # SearchLspAction: LSP-only search
 │   ├── lsp/                     # LSP integration sub-package
 │   │   ├── __init__.py          # Exports LspClient, JavaLSPClient, LanguageEnricher, JavaEnricher
@@ -86,7 +86,7 @@ smolRAG/
 │   │   ├── test_static_e2e.py   # One test per action, calls DeepSeek API (costs money)
 │   │   └── test_agent_e2e.py    # Two-turn agent session covering all 7 tools (costs money)
 │   ├── integration/
-│   │   ├── test_vector.py       # index + searchvector actions
+│   │   ├── test_vector.py       # index + search-vector actions
 │   │   ├── test_lsp.py          # search-lsp + explain actions (requires Java)
 │   │   ├── test_javaenrich.py   # JavaEnricher against real JDTLS (requires Java)
 │   │   └── test_javalspclient.py # definition_code / references_code, no-duplicates check (requires Java)
@@ -137,7 +137,7 @@ uv run pytest tests/ -v
 # Run LSP tests only
 uv run pytest tests/ -v -m lsp
 
-# Run e2e tests (calls DeepSeek API, costs money, needs DEEPSEEK_API_KEY)
+# Run e2e tests (calls DeepSeek API, costs money, needs LLM_API_KEY)
 uv run pytest tests/e2e/ -v -s
 
 # Run all tests except e2e (no cost)
@@ -170,7 +170,7 @@ Available actions:
 | `explain` | `2_explain.py` | LSP + BM25 → dedup → enrich → dedup → context |
 | `refactor-cost` | `3_reafactor_cost.py` | LSP + BM25 → enrich → references via ``references_code`` → dedup → context |
 | `debug-stacktrace` | `4_debug_stacktrace.py` | Parse stacktrace → LSP + BM25 per unique class name → dedup → context |
-| `searchvector` | `90_searchvector.py` | BM25-only search (debug) |
+| `search-vector` | `90_search-vector.py` | BM25-only search (debug) |
 | `search-lsp` | `91_searchlsp.py` | LSP-only search (debug) |
 
 All actions end with building a contextual query and passing it to
@@ -416,7 +416,7 @@ parameters = {
 }
 ```
 
-**Thinking mode passthrough** (``DEEPSEEK_THINKING=1``): ``reasoning_content``
+**Thinking mode passthrough** (``LLM_THINKING=1``): ``reasoning_content``
 must be passed back through ``response.choices[0].message`` during multi-turn
 tool-call exchanges. The agent prints a truncated reasoning trace before the
 final answer.
@@ -429,20 +429,20 @@ take priority.
 
 Exposed constants:
 
-- ``DEEPSEEK_API_KEY`` — API key
-- ``DEEPSEEK_MODEL`` — model name (default: ``deepseek-v4-flash``)
-- ``DEEPSEEK_BASE_URL`` — API endpoint (default: ``https://api.deepseek.com``)
-- ``DEEPSEEK_THINKING`` — thinking mode toggle (default: ``True``,
-  set ``DEEPSEEK_THINKING=0`` to disable)
-- ``DEEPSEEK_REASONING_EFFORT`` — chain-of-thought effort: ``"high"`` or
+- ``LLM_API_KEY`` — API key
+- ``LLM_MODEL`` — model name (default: ``deepseek-v4-flash``)
+- ``LLM_BASE_URL`` — API endpoint (default: ``https://api.deepseek.com``)
+- ``LLM_THINKING`` — thinking mode toggle (default: ``True``,
+  set ``LLM_THINKING=0`` to disable)
+- ``LLM_REASONING_EFFORT`` — chain-of-thought effort: ``"high"`` or
   ``"max"`` (default: ``"high"``, only applies when thinking is enabled)
 
 Create ``~/.config/smolrag/.env`` manually:
 
 ```bash
 mkdir -p ~/.config/smolrag
-echo 'DEEPSEEK_API_KEY=sk-...' > ~/.config/smolrag/.env
-# optional: DEEPSEEK_THINKING=0, DEEPSEEK_REASONING_EFFORT=max
+echo 'LLM_API_KEY=sk-...' > ~/.config/smolrag/.env
+# optional: LLM_THINKING=0, LLM_REASONING_EFFORT=max
 ```
 
 ## E2E tests
@@ -451,14 +451,14 @@ echo 'DEEPSEEK_API_KEY=sk-...' > ~/.config/smolrag/.env
 sends the context block to DeepSeek, and prints the response.
 ``tests/e2e/test_agent_e2e.py`` runs a two-turn agent session exercising all 7
 tools. Tests are marked ``@pytest.mark.e2e`` and skip when
-``DEEPSEEK_API_KEY`` is not set. No assertions — human-validated.
+``LLM_API_KEY`` is not set. No assertions — human-validated.
 
 ## integration tests
 
 ``tests/integration/`` drives the action pipeline as a black box, patching
 ``prompt`` via ``tests.helpers.patch_prompt`` and asserting on ``capsys`` output.
 
-- **`test_vector.py`** — index + searchvector. Always run.
+- **`test_vector.py`** — index + search-vector. Always run.
 - **`test_lsp.py`** — search-lsp + explain. Marked ``@pytest.mark.lsp``,
   ``@pytest.mark.slow``. Skips when Java 17+ is not available.
 - **`test_javaenrich.py`** — JavaEnricher against real JDTLS. Marked

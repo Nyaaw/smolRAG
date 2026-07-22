@@ -24,7 +24,7 @@ def test_build_empty_snippets():
     result = ContextBuilder.build("Explain Cat", [])
     assert "You are a helpful assistant" in result
     assert "RAG" in result
-    assert "## Explain Cat" in result
+    assert "Explain Cat" in result
     assert "## Retrieved code snippets:" in result
     assert "```java" not in result
 
@@ -34,7 +34,7 @@ def test_build_single_snippet():
     s = _cs("int x = 1;", "Main.java", 0, 1, "LSP search 'Main'")
     result = ContextBuilder.build("Explain Main", [s])
 
-    assert "## Explain Main" in result
+    assert "Explain Main" in result
     assert "### Main.java (0 lines)@0:1, source: LSP search 'Main'" in result
     assert "```java\nint x = 1;\n```" in result
 
@@ -81,7 +81,7 @@ def test_build_query_formats(query):
     """The query appears as a level-2 heading regardless of content."""
     s = _cs("code", "F.java", 0, 0, "test")
     result = ContextBuilder.build(query, [s])
-    assert f"## {query}" in result
+    assert query in result
 
 
 def test_build_system_prompt_contains_key_phrases():

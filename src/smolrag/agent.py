@@ -6,11 +6,11 @@ import openai
 from prompt_toolkit import prompt
 
 from smolrag.config import (
-    DEEPSEEK_API_KEY,
-    DEEPSEEK_BASE_URL,
-    DEEPSEEK_MODEL,
-    DEEPSEEK_REASONING_EFFORT,
-    DEEPSEEK_THINKING,
+    LLM_API_KEY,
+    LLM_BASE_URL,
+    LLM_MODEL,
+    LLM_REASONING_EFFORT,
+    LLM_THINKING,
 )
 from smolrag.lsp import JavaLSPClient
 from smolrag.tools import list_tools
@@ -18,18 +18,19 @@ from smolrag.tools.tool import LspTool, Tool
 
 SYSTEM_PROMPT = (Path(__file__).parent / "prompts" / "agent_system.txt").read_text()
 
+#TODO test with chatgpt
 def run_agent(project_root: str) -> None:
     """Run the agentic loop: read user queries from stdin, call DeepSeek
     with tools, execute tool calls, and print the final answer."""
 
-    if not DEEPSEEK_API_KEY:
-        print("Error: DEEPSEEK_API_KEY is not set.")
+    if not LLM_API_KEY:
+        print("Error: LLM_API_KEY is not set.")
         print("Set it in ~/.config/smolrag/.env or as an environment variable.")
         sys.exit(1)
 
     client = openai.OpenAI(
-        api_key=DEEPSEEK_API_KEY,
-        base_url=DEEPSEEK_BASE_URL,
+        api_key=LLM_API_KEY,
+        base_url=LLM_BASE_URL,
     )
 
     lsp_client = JavaLSPClient(project_root)
@@ -56,8 +57,8 @@ def run_agent(project_root: str) -> None:
         messages: list[dict] = []
 
         print("Agent mode. Type your query (Ctrl+C or Ctrl+D to exit).")
-        print(f"Model: {DEEPSEEK_MODEL}")
-        print(f"Thinking: {'on' if DEEPSEEK_THINKING else 'off'}")
+        print(f"Model: {LLM_MODEL}")
+        print(f"Thinking: {'on' if LLM_THINKING else 'off'}")
         print(f"Tools available: {', '.join(sorted(tool_registry.keys())) or 'none'}")
         print()
 
@@ -78,14 +79,14 @@ def run_agent(project_root: str) -> None:
 
             while True:
                 kwargs: dict = {
-                    "model": DEEPSEEK_MODEL,
+                    "model": LLM_MODEL,
                     "messages": messages,
                     "tools": tool_defs if tool_defs else openai.NOT_GIVEN,
                 }
 
-                if DEEPSEEK_THINKING:
+                if LLM_THINKING:
                     kwargs["extra_body"] = {"thinking": {"type": "enabled"}}
-                    kwargs["reasoning_effort"] = DEEPSEEK_REASONING_EFFORT
+                    kwargs["reasoning_effort"] = LLM_REASONING_EFFORT
 
                 response = client.chat.completions.create(**kwargs)
 
@@ -117,7 +118,7 @@ def run_agent(project_root: str) -> None:
                             }
                         )
                 else:
-                    if DEEPSEEK_THINKING and hasattr(msg, "reasoning_content") and msg.reasoning_content:
+                    if LLM_THINKING and hasattr(msg, "reasoning_content") and msg.reasoning_content:
                         print(f"[reasoning] {msg.reasoning_content}")
                     print()
                     print(f"[response] {msg.content}")

@@ -38,9 +38,7 @@ def _merge_overlapping(
     """Merge a sorted-by-start_line list of same-file snippets.
 
     Walks the list left to right, accumulating adjacent or overlapping
-    snippets into a single CodeSnippet.  When two ranges intersect, the
-    shared prefix is stripped from the later snippet so no lines are
-    duplicated in the concatenated code.
+    snippets into a single CodeSnippet.
 
     Records every original snippet's final merged counterpart in
     *orig_to_merged* so that ``parent`` references can be fixed up

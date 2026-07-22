@@ -58,9 +58,9 @@ class DebugStacktraceAction(Action):
         if not snippets:
             print("No code found for any frame in the stacktrace.")
             return
-
+        
         context_query = (
-            "Debug the following Java stacktrace. "
+            "## Debug the following Java stacktrace. "
             "Analyze the retrieved code snippets to identify the root cause "
             "and suggest a fix.\n\n"
             f"```\n{stacktrace}\n```"

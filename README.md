@@ -28,6 +28,8 @@ uv run smolrag --project /absolute/path/to/project
 uv run smolrag --project tests/fixtures/java-sample
 ```
 
+Note: The first time you run smolRAG, the program will download the latest version of the Eclipse JDT Language Server. This might take a while.
+
 ## Index management
 
 The BM25 index is stored at `{cache_root}/qdrant/{target_directory_name}_{hash}/`.
@@ -47,31 +49,33 @@ Rebuild the index whenever project files change.
 ## Configuration
 
 Configuration is read from environment variables. Variables not already set
-are loaded from a `.env` file in the config directory:
+are loaded from a `.env` file located at `~/.config/smolrag/.env`.
+
+Other operating systems:
 
 | OS      | Config file                            |
 |----     |-------------                           |
-| Linux   | `~/.config/smolrag/.env`               |
 | macOS   | `~/.config/smolrag/.env`               |
 | Windows | `C:\Users\<user>\.config\smolrag\.env` |
 
-***Disclaimer: The program was only tested on Linux***
+***Disclaimer: The program was only tested on Linux. The above paths are untested.***
 
 Create it manually:
 
 ```bash
 mkdir -p ~/.config/smolrag
-echo 'DEEPSEEK_API_KEY=sk-...' > ~/.config/smolrag/.env
+echo 'LLM_API_KEY=sk-...' > ~/.config/smolrag/.env
 ```
 
 | Variable                    | Default                    | Description                                                                      |
 |----------                   |---------                   |-------------                                                                     |
 | `SMOLRAG_CACHE_DIR`         | *(platform default)*       | Override the default cache root for the BM25 index.                              |
-| `DEEPSEEK_API_KEY`          | *(none)*                   | DeepSeek API key. Required for agentic mode and e2e tests.                       |
-| `DEEPSEEK_MODEL`            | `deepseek-v4-flash`        | Model name used by the agent.                                                    |
-| `DEEPSEEK_BASE_URL`         | `https://api.deepseek.com` | API endpoint (OpenAI-compatible).                                                |
-| `DEEPSEEK_THINKING`         | `1`                        | Thinking mode toggle. Set to `0` to disable.                                     |
-| `DEEPSEEK_REASONING_EFFORT` | `high`                     | Chain-of-thought effort: `high` or `max`. Only applies when thinking is enabled. |
+| `SMOLRAG_LOG_LEVEL`         | `WARNING`                  | Sets the log level. Set to INFO for lot of logs, DEBUG for even more             |
+| `LLM_API_KEY`               | *(none)*                   | DeepSeek API key. Required for agentic mode and e2e tests.                       |
+| `LLM_MODEL`                 | `deepseek-v4-flash`        | Model name used by the agent.                                                    |
+| `LLM_BASE_URL`              | `https://api.deepseek.com` | API endpoint (OpenAI-compatible).                                                |
+| `LLM_THINKING`              | `1`                        | Thinking mode toggle. Set to `0` to disable.                                     |
+| `LLM_REASONING_EFFORT`      | `high`                     | Chain-of-thought effort: `high` or `max`. Only applies when thinking is enabled. |
 
 ***Disclaimer: The program was only tested with Deepseek***
 

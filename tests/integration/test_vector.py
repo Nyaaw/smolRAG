@@ -17,7 +17,7 @@ def test_searchvector_finds_results(fixture_project, monkeypatch, capsys):
     IndexAction = {a.name: a for a in list_actions()}["index"]
     IndexAction(fixture_project).run()
 
-    SearchVectorAction = {a.name: a for a in list_actions()}["searchvector"]
+    SearchVectorAction = {a.name: a for a in list_actions()}["search-vector"]
     query_input = "eat"
     patch_prompt(monkeypatch, SearchVectorAction, query_input)
     SearchVectorAction(fixture_project).run()
@@ -38,7 +38,7 @@ def test_searchvector_finds_results(fixture_project, monkeypatch, capsys):
 
 def test_searchvector_empty_query_shows_message(fixture_project, monkeypatch, capsys):
     """Empty query triggers the 'No query provided.' guard."""
-    SearchVectorAction = {a.name: a for a in list_actions()}["searchvector"]
+    SearchVectorAction = {a.name: a for a in list_actions()}["search-vector"]
     patch_prompt(monkeypatch, SearchVectorAction, "")
     SearchVectorAction(fixture_project).run()
     captured = capsys.readouterr()
@@ -52,7 +52,7 @@ def test_searchvector_no_index_shows_message(fixture_project, tmp_path, monkeypa
     tests (or previous runs) cannot leak into this one.
     """
     monkeypatch.setenv("SMOLRAG_CACHE_DIR", str(tmp_path))
-    SearchVectorAction = {a.name: a for a in list_actions()}["searchvector"]
+    SearchVectorAction = {a.name: a for a in list_actions()}["search-vector"]
     query_input = "main"
     patch_prompt(monkeypatch, SearchVectorAction, query_input)
     SearchVectorAction(fixture_project).run()
@@ -65,7 +65,7 @@ def test_searchvector_nonsense_returns_empty(fixture_project, monkeypatch, capsy
     IndexAction = {a.name: a for a in list_actions()}["index"]
     IndexAction(fixture_project).run()
 
-    SearchVectorAction = {a.name: a for a in list_actions()}["searchvector"]
+    SearchVectorAction = {a.name: a for a in list_actions()}["search-vector"]
     nonsense = "xyznonexistent123"
     patch_prompt(monkeypatch, SearchVectorAction, nonsense)
     SearchVectorAction(fixture_project).run()
@@ -79,7 +79,7 @@ def test_searchvector_output_has_context_block_structure(fixture_project, monkey
     IndexAction = {a.name: a for a in list_actions()}["index"]
     IndexAction(fixture_project).run()
 
-    SearchVectorAction = {a.name: a for a in list_actions()}["searchvector"]
+    SearchVectorAction = {a.name: a for a in list_actions()}["search-vector"]
     patch_prompt(monkeypatch, SearchVectorAction, "Cat")
     SearchVectorAction(fixture_project).run()
     captured = capsys.readouterr()

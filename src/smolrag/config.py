@@ -17,8 +17,8 @@ def _load_user_config() -> None:
 
 _load_user_config()
 
-DEEPSEEK_API_KEY = os.environ.get("DEEPSEEK_API_KEY")
-DEEPSEEK_MODEL = os.environ.get("DEEPSEEK_MODEL", "deepseek-v4-flash")
-DEEPSEEK_BASE_URL = os.environ.get("DEEPSEEK_BASE_URL", "https://api.deepseek.com")
-DEEPSEEK_THINKING = os.environ.get("DEEPSEEK_THINKING", "1").lower() in ("1", "true", "yes")
-DEEPSEEK_REASONING_EFFORT = os.environ.get("DEEPSEEK_REASONING_EFFORT", "high")
+LLM_API_KEY = os.environ.get("LLM_API_KEY")
+LLM_MODEL = os.environ.get("LLM_MODEL", "deepseek-v4-flash")
+LLM_BASE_URL = os.environ.get("LLM_BASE_URL", "https://api.deepseek.com")
+LLM_THINKING = os.environ.get("LLM_THINKING", "1").lower() in ("1", "true", "yes")
+LLM_REASONING_EFFORT = os.environ.get("LLM_REASONING_EFFORT", "high")

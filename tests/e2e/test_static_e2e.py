@@ -4,11 +4,11 @@ from openai import OpenAI
 from smolrag.actions import list_actions
 from tests.helpers import patch_prompt
 from smolrag.config import (
-    DEEPSEEK_API_KEY,
-    DEEPSEEK_BASE_URL,
-    DEEPSEEK_MODEL,
-    DEEPSEEK_REASONING_EFFORT,
-    DEEPSEEK_THINKING,
+    LLM_API_KEY,
+    LLM_BASE_URL,
+    LLM_MODEL,
+    LLM_REASONING_EFFORT,
+    LLM_THINKING,
 )
 
 pytestmark = pytest.mark.e2e
@@ -26,16 +26,16 @@ def _get_action(name: str):
 
 
 def _call_deepseek(context_block: str) -> tuple[str | None, str]:
-    client = OpenAI(api_key=DEEPSEEK_API_KEY, base_url=DEEPSEEK_BASE_URL)
+    client = OpenAI(api_key=LLM_API_KEY, base_url=LLM_BASE_URL)
     kwargs: dict = {
-        "model": DEEPSEEK_MODEL,
+        "model": LLM_MODEL,
         "messages": [{"role": "user", "content": context_block}],
         "extra_body": {
-            "thinking": {"type": "enabled" if DEEPSEEK_THINKING else "disabled"}
+            "thinking": {"type": "enabled" if LLM_THINKING else "disabled"}
         },
     }
-    if DEEPSEEK_THINKING:
-        kwargs["reasoning_effort"] = DEEPSEEK_REASONING_EFFORT
+    if LLM_THINKING:
+        kwargs["reasoning_effort"] = LLM_REASONING_EFFORT
     response = client.chat.completions.create(**kwargs)
     reasoning = response.choices[0].message.reasoning_content
     content = response.choices[0].message.content
@@ -64,12 +64,12 @@ def _print_response(capsys, label: str, context: str, reasoning: str | None, ans
 # E2E tests (one per action)
 # ---------------------------------------------------------------------------
 
-#TODO: "no information in snippets" cases
+#TODO: "no information in snippets" tests
 
 def test_e2e_index(fixture_project, capsys):
     """Build the BM25 index. No LLM call -- just verify it doesn't crash."""
-    if not DEEPSEEK_API_KEY:
-        pytest.skip("DEEPSEEK_API_KEY not set")
+    if not LLM_API_KEY:
+        pytest.skip("LLM_API_KEY not set")
 
     IndexAction = _get_action("index")
     action = IndexAction(fixture_project)
@@ -82,12 +82,12 @@ def test_e2e_index(fixture_project, capsys):
 
 def test_e2e_searchvector(fixture_project, monkeypatch, capsys):
     """debug-searchvector for 'Cat', send the retrieved context to DeepSeek."""
-    if not DEEPSEEK_API_KEY:
-        pytest.skip("DEEPSEEK_API_KEY not set")
+    if not LLM_API_KEY:
+        pytest.skip("LLM_API_KEY not set")
 
     _get_action("index")(fixture_project).run()
 
-    SearchVector = _get_action("searchvector")
+    SearchVector = _get_action("search-vector")
     patch_prompt(monkeypatch, SearchVector, "Cat")
     SearchVector(fixture_project).run()
 
@@ -103,8 +103,8 @@ def test_e2e_searchvector(fixture_project, monkeypatch, capsys):
 @pytest.mark.lsp
 def test_e2e_search_lsp(fixture_project, require_lsp, monkeypatch, capsys):
     """search-lsp for 'Cat', send the retrieved context to DeepSeek."""
-    if not DEEPSEEK_API_KEY:
-        pytest.skip("DEEPSEEK_API_KEY not set")
+    if not LLM_API_KEY:
+        pytest.skip("LLM_API_KEY not set")
 
     SearchLsp = _get_action("search-lsp")
     patch_prompt(monkeypatch, SearchLsp, "Cat")
@@ -122,8 +122,8 @@ def test_e2e_search_lsp(fixture_project, require_lsp, monkeypatch, capsys):
 @pytest.mark.lsp
 def test_e2e_explain(fixture_project, require_lsp, monkeypatch, capsys):
     """Full explain pipeline for 'Cat', send the context block to DeepSeek."""
-    if not DEEPSEEK_API_KEY:
-        pytest.skip("DEEPSEEK_API_KEY not set")
+    if not LLM_API_KEY:
+        pytest.skip("LLM_API_KEY not set")
 
     _get_action("index")(fixture_project).run()
 
@@ -143,8 +143,8 @@ def test_e2e_explain(fixture_project, require_lsp, monkeypatch, capsys):
 @pytest.mark.lsp
 def test_e2e_refactor_cost(fixture_project, require_lsp, monkeypatch, capsys):
     """RefactorCost for 'Cat' -> 'Rename scratch to claw', send to DeepSeek."""
-    if not DEEPSEEK_API_KEY:
-        pytest.skip("DEEPSEEK_API_KEY not set")
+    if not LLM_API_KEY:
+        pytest.skip("LLM_API_KEY not set")
 
     RefactorCost = _get_action("refactor-cost")
     patch_prompt(monkeypatch, RefactorCost, "Cat", "Rename scratch to claw")
@@ -162,8 +162,8 @@ def test_e2e_refactor_cost(fixture_project, require_lsp, monkeypatch, capsys):
 @pytest.mark.lsp
 def test_e2e_debug_stacktrace(fixture_project, require_lsp, monkeypatch, capsys):
     """debug-stacktrace with the NPE from Main.java, send to DeepSeek."""
-    if not DEEPSEEK_API_KEY:
-        pytest.skip("DEEPSEEK_API_KEY not set")
+    if not LLM_API_KEY:
+        pytest.skip("LLM_API_KEY not set")
 
     DebugStacktrace = _get_action("debug-stacktrace")
     patch_prompt(

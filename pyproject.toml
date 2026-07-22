@@ -1,6 +1,6 @@
 [project]
 name = "smolrag"
-version = "1.0.0"
+version = "1.1.0"
 description = "Local code retrieval tool combining LSP analysis and BM25 indexing for large codebases"
 readme = "README.md"
 authors = [
@@ -33,5 +33,5 @@ dev = [
 markers = [
     "lsp: tests requiring LSP server (Java 17+, JDTLS, slow startup)",
     "slow: tests that take significantly longer to run",
-    "e2e: end-to-end tests that call an external LLM API (needs DEEPSEEK_API_KEY)",
+    "e2e: end-to-end tests that call an external LLM API (needs LLM_API_KEY)",
 ]

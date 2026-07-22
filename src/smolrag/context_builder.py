@@ -73,7 +73,7 @@ class ContextBuilder:
         parts: list[str] = [
             _SYSTEM_PROMPT,
             "",
-            f"## {query}",
+            f"{query}",
             "",
             "## Retrieved code snippets:",
             "",

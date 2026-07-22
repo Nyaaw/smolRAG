@@ -1,7 +1,7 @@
 import pytest
 
 import smolrag.agent as agent_module
-from smolrag.config import DEEPSEEK_API_KEY
+from smolrag.config import LLM_API_KEY
 from smolrag.tools import list_tools
 
 pytestmark = [pytest.mark.e2e, pytest.mark.lsp, pytest.mark.slow]
@@ -36,8 +36,8 @@ def test_e2e_agent_covers_all_tools(fixture_project, require_lsp, monkeypatch, c
     The transcript is printed for human validation; assertions only
     check that both turns completed and which tools were invoked.
     """
-    if not DEEPSEEK_API_KEY:
-        pytest.skip("DEEPSEEK_API_KEY not set")
+    if not LLM_API_KEY:
+        pytest.skip("LLM_API_KEY not set")
 
     _queue_prompts(monkeypatch, QUERY_EXPLORE, QUERY_LSP_TOOLS)
     agent_module.run_agent(fixture_project)
